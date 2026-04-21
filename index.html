@@ -847,7 +847,8 @@ async function joinSession() {
   if (firebaseReady) {
     const { ref, get } = db.rtdb;
     const snap = await get(ref(db.database, `sessions/${room}/raiders/${sanitize(name)}`));
-    if (snap.exists()) {
+    const isMyOwnName = name === localStorage.getItem('cr_lastName') && room === localStorage.getItem('cr_lastRoom');
+    if (snap.exists() && !isMyOwnName) {
       alert(`"${name}" is already taken in room ${room}. Choose a different name.`);
       return;
     }
