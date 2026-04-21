@@ -779,6 +779,7 @@ let roomCode = '';
 let myCodesUsed = 0;
 let myHistory = []; // local history of claimed indices (for BACK)
 let sessionListener = null;
+let refreshInterval = null;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -843,6 +844,15 @@ async function joinSession() {
   if (!room) { $('room-input').focus(); return; }
   if (!name) { $('name-input').focus(); return; }
 
+  if (firebaseReady) {
+    const { ref, get } = db.rtdb;
+    const snap = await get(ref(db.database, `sessions/${room}/raiders/${sanitize(name)}`));
+    if (snap.exists()) {
+      alert(`"${name}" is already taken in room ${room}. Choose a different name.`);
+      return;
+    }
+  }
+
   roomCode = room;
   myName = name;
   myCodesUsed = 0;
@@ -868,6 +878,12 @@ async function joinSession() {
       const data = snap.val() || {};
       renderRaiderList(data.raiders || {});
     });
+
+    refreshInterval = setInterval(async () => {
+      const { ref, get } = db.rtdb;
+      const snap = await get(ref(db.database, `sessions/${roomCode}`));
+      if (snap.exists()) renderRaiderList(snap.val().raiders || {});
+    }, 10000);
 
     await nextCode();
   } else {
@@ -898,6 +914,10 @@ async function nextCode() {
 
   myHistory.push(idx);
   myCodesUsed++;
+  if (firebaseReady && roomCode && myName) {
+    const { ref, update } = db.rtdb;
+    update(ref(db.database, `sessions/${roomCode}/raiders/${sanitize(myName)}`), { currentIndex: idx + 1, currentCode: CODES[idx] });
+  }
   renderCode(CODES[idx], idx, true);
 }
 
@@ -932,10 +952,11 @@ function renderCode(code, idx, animate) {
 }
 
 function renderRaiderList(raiders) {
-  const names = Object.values(raiders).map(r => r.name || r);
-  $('raider-row').innerHTML = names.map(n =>
-    `<span class="raider-pill${n === myName ? ' me' : ''}">${escapeHtml(n)}</span>`
-  ).join('');
+  $('raider-row').innerHTML = Object.values(raiders).map(r => {
+    const n = r.name || r;
+    const code = r.currentCode ? ` · ${r.currentCode}` : '';
+    return `<span class="raider-pill${n === myName ? ' me' : ''}">${escapeHtml(n)}${code}</span>`;
+  }).join('');
 }
 
 function escapeHtml(s) {
@@ -952,6 +973,7 @@ async function leaveSession() {
     } catch {}
   }
   if (sessionListener) { sessionListener(); sessionListener = null; }
+  if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
   myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = [];
   $('done-overlay').classList.remove('show');
   $('raid-screen').classList.remove('active');
