@@ -847,8 +847,7 @@ async function joinSession() {
   if (firebaseReady) {
     const { ref, get } = db.rtdb;
     const snap = await get(ref(db.database, `sessions/${room}/raiders/${sanitize(name)}`));
-    const isMyOwnName = name === localStorage.getItem('cr_lastName') && room === localStorage.getItem('cr_lastRoom');
-    if (snap.exists() && !isMyOwnName) {
+    if (snap.exists()) {
       alert(`"${name}" is already taken in room ${room}. Choose a different name.`);
       return;
     }
@@ -869,9 +868,10 @@ async function joinSession() {
 
   if (firebaseReady) {
     // Register me in the raiders list
-    const { ref, set, onValue, serverTimestamp } = db.rtdb;
+    const { ref, set, onValue, onDisconnect } = db.rtdb;
     const meRef = ref(db.database, `sessions/${roomCode}/raiders/${sanitize(myName)}`);
     await set(meRef, { name: myName, joinedAt: Date.now() });
+    onDisconnect(meRef).remove();
 
     // Listen for session changes (live raider list, global counter)
     const sessionRef = ref(db.database, `sessions/${roomCode}`);
