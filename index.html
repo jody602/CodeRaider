@@ -96,6 +96,8 @@
   .stat-cell .s-val { font-size:18px; font-weight:700; color:var(--text); font-family:'Share Tech Mono',monospace; }
   .stat-cell .s-val.green { color:var(--green); }
   .stat-cell .s-val.orange { color:var(--accent2); }
+  .stat-bar.cols-2 { grid-template-columns:1fr 1fr; }
+  .stat-cell .s-val.accent { color:var(--accent); font-size:15px; }
 
   .controls { display:flex; gap:10px; }
   .ctrl-btn { flex:1; height:56px; background:var(--surface); border:1px solid var(--border); color:var(--text); cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:600; letter-spacing:3px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:8px; transition:background .15s,border-color .15s,color .15s; }
@@ -215,6 +217,16 @@
       <div class="stat-cell">
         <span class="s-label">Left</span>
         <span class="s-val green" id="stat-remain">10,000</span>
+      </div>
+    </div>
+    <div class="stat-bar cols-2" style="margin-top:1px">
+      <div class="stat-cell">
+        <span class="s-label">Total Time</span>
+        <span class="s-val accent" id="stat-total-time">0s</span>
+      </div>
+      <div class="stat-cell">
+        <span class="s-label">Codes / Min</span>
+        <span class="s-val orange" id="stat-cpm">0.0</span>
       </div>
     </div>
 
@@ -779,8 +791,13 @@ let myName = '';
 let roomCode = '';
 let myCodesUsed = 0;
 let myHistory = []; // local history of claimed indices (for BACK)
+let myHistoryPos = -1;  // cursor into myHistory; NEXT walks forward before claiming new
+let lastClickTime = 0;  // rate-limit: 1 action per second
 let sessionListener = null;
 let refreshInterval = null;
+let totalTimeInterval = null;
+let soloLocalTime = 0;
+let localSessionStart = 0;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -879,6 +896,8 @@ async function joinSession() {
   myName = name;
   myCodesUsed = 0;
   myHistory = [];
+  myHistoryPos = -1;
+  lastClickTime = 0;
 
   localStorage.setItem('cr_lastRoom', room);
   localStorage.setItem('cr_lastName', name);
@@ -888,8 +907,10 @@ async function joinSession() {
   $('setup-screen').classList.remove('active');
   $('raid-screen').classList.add('active');
 
+  localSessionStart = Date.now();
+
   if (firebaseReady) {
-    const { ref, set, update, onValue, onDisconnect } = db.rtdb;
+    const { ref, set, get, update, runTransaction, onValue, onDisconnect } = db.rtdb;
     const rKey = sanitize(roomCode);
     const nKey = sanitize(myName);
     const meRef = ref(db.database, `sessions/${rKey}/raiders/${nKey}`);
@@ -903,16 +924,27 @@ async function joinSession() {
     // Mark offline (not remove) when disconnected so they stay visible
     onDisconnect(meRef).update({ online: false });
 
+    // Set sessionStartTime once when room is created
+    const startRef = ref(db.database, `sessions/${rKey}/sessionStartTime`);
+    const startSnap = await get(startRef);
+    if (!startSnap.exists()) await set(startRef, Date.now());
+
+    // Each online user adds 1 second/real-second to shared totalTime counter
+    totalTimeInterval = setInterval(() => {
+      runTransaction(ref(db.database, `sessions/${rKey}/totalTime`), (cur) => (cur || 0) + 1);
+    }, 1000);
+
     // Listen for session changes (live raider list, global counter)
     const sessionRef = ref(db.database, `sessions/${rKey}`);
     sessionListener = onValue(sessionRef, (snap) => {
       const data = snap.val() || {};
       renderRaiderList(data.raiders || {});
+      updateTimeStats(data.totalTime || 0, data.nextGlobalIndex || 0, data.sessionStartTime);
     });
 
     refreshInterval = setInterval(async () => {
-      const { ref, get } = db.rtdb;
-      const snap = await get(ref(db.database, `sessions/${rKey}`));
+      const { ref: r2, get: g2 } = db.rtdb;
+      const snap = await g2(r2(db.database, `sessions/${rKey}`));
       if (snap.exists()) renderRaiderList(snap.val().raiders || {});
     }, 10000);
 
@@ -920,21 +952,39 @@ async function joinSession() {
       // Restore to their last code
       const restoreIdx = savedCurrentIndex - 1;
       myHistory = [restoreIdx];
+      myHistoryPos = 0;
       myCodesUsed = 1;
       renderCode(CODES[restoreIdx], restoreIdx, true);
     } else {
       await nextCode();
     }
   } else {
-    // Solo mode
+    // Solo mode — 1 user, 1 second/real-second
+    soloLocalTime = 0;
+    totalTimeInterval = setInterval(() => {
+      soloLocalTime++;
+      updateTimeStats(soloLocalTime, myCodesUsed, localSessionStart);
+    }, 1000);
     await nextCode();
   }
 }
 
 function sanitize(s) { return s.toLowerCase().replace(/[.#$\/\[\]]/g, '_'); }
 
-// ── Next code (atomic via transaction) ───────────────────────────────────────
+// ── Next code ────────────────────────────────────────────────────────────────
 async function nextCode() {
+  if (Date.now() - lastClickTime < 1000) return;
+  lastClickTime = Date.now();
+
+  // If the user pressed BACK and hasn't reached the end of local history yet,
+  // walk forward through it instead of claiming a new global code.
+  if (myHistoryPos < myHistory.length - 1) {
+    myHistoryPos++;
+    renderCode(CODES[myHistory[myHistoryPos]], myHistory[myHistoryPos], true);
+    return;
+  }
+
+  // Claim the next global code.
   let idx;
   if (firebaseReady) {
     const { ref, runTransaction } = db.rtdb;
@@ -944,7 +994,6 @@ async function nextCode() {
     if (!res.committed) { alert('Sync failed, try again.'); return; }
     idx = res.snapshot.val() - 1;
   } else {
-    // Solo fallback — use localStorage counter
     const key = 'cr_solo_idx';
     idx = parseInt(localStorage.getItem(key) || '0');
     localStorage.setItem(key, String(idx + 1));
@@ -953,6 +1002,7 @@ async function nextCode() {
   if (idx >= TOTAL) { showDone(); return; }
 
   myHistory.push(idx);
+  myHistoryPos = myHistory.length - 1;
   myCodesUsed++;
   if (firebaseReady && roomCode && myName) {
     const { ref, update } = db.rtdb;
@@ -962,13 +1012,13 @@ async function nextCode() {
   renderCode(CODES[idx], idx, true);
 }
 
-// ── Back (local only, no global index change — just show previous) ──────────
+// ── Back (local only — walk backwards through history, never claims new codes)
 async function prevCode() {
-  if (myHistory.length < 2) return;
-  myHistory.pop();
-  myCodesUsed = Math.max(0, myCodesUsed - 1);
-  const prevIdx = myHistory[myHistory.length - 1];
-  renderCode(CODES[prevIdx], prevIdx, false);
+  if (Date.now() - lastClickTime < 1000) return;
+  lastClickTime = Date.now();
+  if (myHistoryPos < 1) return;
+  myHistoryPos--;
+  renderCode(CODES[myHistory[myHistoryPos]], myHistory[myHistoryPos], false);
 }
 
 function renderCode(code, idx, animate) {
@@ -1020,13 +1070,35 @@ async function leaveSession() {
   }
   if (sessionListener) { sessionListener(); sessionListener = null; }
   if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
-  myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = [];
+  if (totalTimeInterval) { clearInterval(totalTimeInterval); totalTimeInterval = null; }
+  soloLocalTime = 0; localSessionStart = 0;
+  myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
   $('raid-screen').classList.remove('active');
   $('setup-screen').classList.add('active');
   $('ring-fg').style.strokeDashoffset = 175.9;
   $('ring-pct').textContent = '0%';
+  $('stat-total-time').textContent = '0s';
+  $('stat-cpm').textContent = '0.0';
   updateBanner();
+}
+
+// ── Time stats helpers ───────────────────────────────────────────────────────
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function updateTimeStats(totalTime, globalIdx, sessionStart) {
+  $('stat-total-time').textContent = formatTime(totalTime);
+  const start = sessionStart || localSessionStart;
+  const elapsedMin = start ? (Date.now() - start) / 60000 : 0;
+  const cpm = (elapsedMin > 0.01 && globalIdx > 0) ? (globalIdx / elapsedMin).toFixed(1) : '0.0';
+  $('stat-cpm').textContent = cpm;
 }
 
 // ── Keyboard shortcuts (when page is focused) ───────────────────────────────
