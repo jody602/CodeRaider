@@ -870,22 +870,22 @@ async function joinSession() {
     const rKey = sanitize(room);
     const nKey = sanitize(name);
     const snap = await get(ref(db.database, `sessions/${rKey}/raiders/${nKey}`));
-    const isMyOwnName =
-      name.toLowerCase() === (localStorage.getItem('cr_lastName') || '').toLowerCase() &&
-      room.toLowerCase() === (localStorage.getItem('cr_lastRoom') || '').toLowerCase();
 
     if (snap.exists()) {
       const existing = snap.val();
       const isOnline = !!existing.online;
-      if (isOnline && !isMyOwnName) {
-        alert(`"${name}" is already active in room ${room}. Choose a different name.`);
-        return;
+      if (isOnline) {
+        // Only block if someone is actively using this name right now.
+        // Allow if localStorage confirms it's the same browser/user.
+        const isMyOwnName =
+          name.toLowerCase() === (localStorage.getItem('cr_lastName') || '').toLowerCase() &&
+          room.toLowerCase() === (localStorage.getItem('cr_lastRoom') || '').toLowerCase();
+        if (!isMyOwnName) {
+          alert(`"${name}" is already active in room ${room}. Choose a different name.`);
+          return;
+        }
       }
-      if (!isOnline && !isMyOwnName) {
-        alert(`"${name}" is offline in room ${room}. Choose a different name.`);
-        return;
-      }
-      // Returning player — restore their last position
+      // Name is offline — always allow. Restore their last position if available.
       if (!isOnline && existing.currentIndex) {
         savedCurrentIndex = existing.currentIndex;
       }
