@@ -205,14 +205,10 @@
       <p class="code-rank">Rank <span id="rank-label">-</span> of 10,000</p>
     </div>
 
-    <div class="stat-bar">
+    <div class="stat-bar cols-2">
       <div class="stat-cell">
         <span class="s-label">Mine</span>
         <span class="s-val" id="stat-mine">0</span>
-      </div>
-      <div class="stat-cell">
-        <span class="s-label">Group</span>
-        <span class="s-val orange" id="stat-global">-</span>
       </div>
       <div class="stat-cell">
         <span class="s-label">Left</span>
@@ -225,7 +221,7 @@
         <span class="s-val accent" id="stat-total-time">0s</span>
       </div>
       <div class="stat-cell">
-        <span class="s-label">Codes / Min</span>
+        <span class="s-label">Codes / Hr</span>
         <span class="s-val orange" id="stat-cpm">0.0</span>
       </div>
     </div>
@@ -794,10 +790,12 @@ let myHistory = []; // local history of claimed indices (for BACK)
 let myHistoryPos = -1;  // cursor into myHistory; NEXT walks forward before claiming new
 let lastClickTime = 0;  // rate-limit: 1 action per second
 let sessionListener = null;
+let presenceListener = null;
 let refreshInterval = null;
 let totalTimeInterval = null;
 let soloLocalTime = 0;
 let localSessionStart = 0;
+let globalIdxHistory = []; // [{time, idx}] for sliding-window CPH
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -921,8 +919,14 @@ async function joinSession() {
     } else {
       await set(meRef, { name: myName, online: true, joinedAt: Date.now() });
     }
-    // Mark offline (not remove) when disconnected so they stay visible
-    onDisconnect(meRef).update({ online: false });
+    // Re-establish presence on every (re)connect so network hiccups don't leave stale offline status
+    const connectedRef = ref(db.database, '.info/connected');
+    presenceListener = onValue(connectedRef, (connSnap) => {
+      if (connSnap.val() === true) {
+        onDisconnect(meRef).update({ online: false });
+        update(meRef, { online: true });
+      }
+    });
 
     // Set sessionStartTime once when room is created
     const startRef = ref(db.database, `sessions/${rKey}/sessionStartTime`);
@@ -1035,7 +1039,6 @@ function renderCode(code, idx, animate) {
   }
   $('rank-label').textContent  = (idx + 1).toLocaleString();
   $('stat-mine').textContent   = myCodesUsed;
-  $('stat-global').textContent = (idx + 1).toLocaleString();
   $('stat-remain').textContent = Math.max(0, TOTAL - idx - 1).toLocaleString();
   const pct = (idx + 1) / TOTAL;
   $('ring-fg').style.strokeDashoffset = 175.9 - pct * 175.9;
@@ -1045,8 +1048,8 @@ function renderCode(code, idx, animate) {
 function renderRaiderList(raiders) {
   $('raider-row').innerHTML = Object.values(raiders).map(r => {
     const n = r.name || r;
-    const isOnline = !!r.online;
     const isMe = n.toLowerCase() === myName.toLowerCase();
+    const isOnline = isMe || !!r.online;
     const code = r.currentCode ? ` · ${r.currentCode}` : '';
     const offlineTag = isOnline ? '' : ' (offline)';
     const classes = ['raider-pill', isMe ? 'me' : '', isOnline ? '' : 'offline'].filter(Boolean).join(' ');
@@ -1069,9 +1072,10 @@ async function leaveSession() {
     } catch {}
   }
   if (sessionListener) { sessionListener(); sessionListener = null; }
+  if (presenceListener) { presenceListener(); presenceListener = null; }
   if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
   if (totalTimeInterval) { clearInterval(totalTimeInterval); totalTimeInterval = null; }
-  soloLocalTime = 0; localSessionStart = 0;
+  soloLocalTime = 0; localSessionStart = 0; globalIdxHistory = [];
   myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
   $('raid-screen').classList.remove('active');
@@ -1094,11 +1098,40 @@ function formatTime(seconds) {
 }
 
 function updateTimeStats(totalTime, globalIdx, sessionStart) {
+  const now = Date.now();
+
+  // Record entry when globalIdx changes or every 5 minutes (time marker for rate decay)
+  const last = globalIdxHistory[globalIdxHistory.length - 1];
+  if (!last || last.idx !== globalIdx || now - last.time >= 300000) {
+    globalIdxHistory.push({ time: now, idx: globalIdx });
+    // Prune entries older than 65 minutes
+    const cutoff = now - 3900000;
+    while (globalIdxHistory.length > 1 && globalIdxHistory[0].time < cutoff) {
+      globalIdxHistory.shift();
+    }
+  }
+
   $('stat-total-time').textContent = formatTime(totalTime);
-  const start = sessionStart || localSessionStart;
-  const elapsedMin = start ? (Date.now() - start) / 60000 : 0;
-  const cpm = (elapsedMin > 0.01 && globalIdx > 0) ? (globalIdx / elapsedMin).toFixed(1) : '0.0';
-  $('stat-cpm').textContent = cpm;
+
+  // Codes per hour: sliding window over the last hour (or full session if < 1 hr)
+  let cph = '0.0';
+  if (globalIdxHistory.length >= 1) {
+    const oneHourAgo = now - 3600000;
+    // Find the last entry at or before the 1-hour mark (state at window start)
+    let baseline = null;
+    for (let i = 0; i < globalIdxHistory.length; i++) {
+      if (globalIdxHistory[i].time <= oneHourAgo) baseline = globalIdxHistory[i];
+      else break;
+    }
+    baseline = baseline || globalIdxHistory[0];
+    const codesInWindow = globalIdx - baseline.idx;
+    const windowHours = (now - baseline.time) / 3600000;
+    if (windowHours > 0.001 && codesInWindow > 0) {
+      cph = (codesInWindow / windowHours).toFixed(1);
+    }
+  }
+
+  $('stat-cpm').textContent = cph;
 }
 
 // ── Keyboard shortcuts (when page is focused) ───────────────────────────────
