@@ -1,19 +1,18 @@
 async function getOnlineStatus(bmId, headers) {
   try {
-    // filter[status] is not valid — get latest session and check stop===null
+    // only filter[players] is valid — check if any session has stop===null
     const res = await fetch(
-      `https://api.battlemetrics.com/sessions?filter[players]=${bmId}&sort=-start&page[size]=1`,
+      `https://api.battlemetrics.com/sessions?filter[players]=${bmId}`,
       { headers }
     );
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch { return { online: false, _debug: `parse error: ${text.slice(0, 300)}` }; }
     if (!res.ok) return { online: false, _debug: `sessions ${res.status}: ${text.slice(0, 300)}` };
-    const latest = data.data?.[0];
-    const online = !!latest && latest.attributes?.stop === null;
+    const online = Array.isArray(data.data) && data.data.some(s => s.attributes?.stop === null);
     return {
       online,
-      _debug: `status=${res.status} count=${data.data?.length} stop=${latest?.attributes?.stop ?? 'none'}`,
+      _debug: `status=${res.status} count=${data.data?.length} online=${online}`,
     };
   } catch (e) {
     return { online: false, _debug: `exception: ${e.message}` };
