@@ -104,9 +104,23 @@
   .ctrl-btn:active { background:#131d27; }
   .ctrl-btn.primary { flex:2; background:#001e26; border-color:var(--accent); color:var(--accent); font-size:16px; }
   .ctrl-btn.primary:active { background:#002d38; }
-  .ctrl-btn.back { color:var(--muted); }
-  .ctrl-btn.back:active { border-color:var(--green); color:var(--green); }
   .ctrl-btn.leave { font-size:11px; letter-spacing:2px; }
+
+  /* Steam sign-in */
+  .steam-section { width:100%; margin-bottom:20px; }
+  .steam-btn { display:block; background:none; border:none; padding:0; cursor:pointer; }
+  .steam-btn img { height:40px; display:block; }
+  .steam-signed-in { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#0a1a0a; border:1px solid #1a3a1a; }
+  .steam-id-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; margin-bottom:2px; }
+  .steam-id-val { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--green); letter-spacing:1px; }
+  .steam-signout { background:none; border:none; color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; cursor:pointer; text-decoration:underline; padding:0; }
+  .steam-signout:hover { color:var(--danger); }
+
+  .recent-section { margin-top:12px; margin-bottom:4px; }
+  .recent-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; margin-bottom:8px; }
+  .recent-list { display:flex; gap:8px; flex-wrap:wrap; min-height:32px; align-items:center; }
+  .recent-code { padding:4px 14px; background:var(--surface); border:1px solid var(--border); font-family:'Share Tech Mono',monospace; font-size:16px; font-weight:700; color:var(--dim); letter-spacing:2px; }
+  .recent-empty { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--dim); letter-spacing:2px; }
   .ctrl-btn.leave:active { border-color:var(--danger); color:var(--danger); }
 
   .key-hint { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:-4px; flex-wrap:wrap; }
@@ -168,6 +182,8 @@
   <div class="screen active" id="setup-screen">
     <p class="setup-title">Join or Create</p>
     <h1 class="setup-heading">RAID SESSION</h1>
+
+    <div class="steam-section" id="steam-section"></div>
 
     <div id="firebase-warn">
       <strong>⚠ Sync not configured</strong><br>
@@ -250,15 +266,16 @@
       </div>
     </div>
 
+    <div class="recent-section">
+      <div class="recent-label">Recent</div>
+      <div class="recent-list" id="recent-codes"><span class="recent-empty">—</span></div>
+    </div>
+
     <div class="controls">
-      <button class="ctrl-btn back" onclick="prevCode()">◀ BACK</button>
       <button class="ctrl-btn primary" onclick="nextCode()">NEXT ▶</button>
       <button class="ctrl-btn leave" onclick="leaveSession()">EXIT</button>
     </div>
     <div class="key-hint">
-      <span class="key-chip">←</span>
-      <span style="font-size:9px;color:var(--muted);letter-spacing:2px;font-family:monospace">BACK</span>
-      <span style="color:var(--border);margin:0 6px">|</span>
       <span class="key-chip">→</span>
       <span style="font-size:9px;color:var(--muted);letter-spacing:2px;font-family:monospace">NEXT</span>
     </div>
@@ -827,15 +844,22 @@ const TOTAL = CODES.length;
 // ── Firebase init ────────────────────────────────────────────────────────────
 let db = null;
 let firebaseReady = false;
+let steamCallbackUrl = null;
 
 try {
-  const { FIREBASE_CONFIG } = await import('./firebase-config.js');
+  const { FIREBASE_CONFIG, STEAM_CALLBACK_URL } = await import('./firebase-config.js');
+  if (STEAM_CALLBACK_URL && !STEAM_CALLBACK_URL.includes('YOUR_VERCEL')) {
+    steamCallbackUrl = STEAM_CALLBACK_URL;
+  }
   if (FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('YOUR_')) {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
     const rtdb = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js');
+    const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
     const app = initializeApp(FIREBASE_CONFIG);
     db = { rtdb, ref: rtdb.ref(rtdb.getDatabase(app)) };
     db.database = rtdb.getDatabase(app);
+    db.auth = getAuth(app);
+    db.signInWithCustomToken = signInWithCustomToken;
     firebaseReady = true;
     setStatus(true);
   } else {
@@ -844,6 +868,37 @@ try {
 } catch (err) {
   console.warn('Firebase not configured:', err);
   document.getElementById('firebase-warn').classList.add('show');
+}
+
+// ── Steam auth ────────────────────────────────────────────────────────────────
+function steamSignIn() {
+  if (!steamCallbackUrl) return alert('Steam login not configured yet.');
+  const params = new URLSearchParams({
+    'openid.ns': 'http://specs.openid.net/auth/2.0',
+    'openid.mode': 'checkid_setup',
+    'openid.return_to': steamCallbackUrl,
+    'openid.realm': new URL(steamCallbackUrl).origin,
+    'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+    'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
+  });
+  window.location.href = 'https://steamcommunity.com/openid/login?' + params.toString();
+}
+
+function steamSignOut() {
+  localStorage.removeItem('cr_steamId');
+  if (db?.auth) db.auth.signOut().catch(() => {});
+  updateSteamSection();
+}
+
+function updateSteamSection() {
+  const section = $('steam-section');
+  if (!section) return;
+  const steamId = localStorage.getItem('cr_steamId');
+  if (steamId) {
+    section.innerHTML = `<div class="steam-signed-in"><div><div class="steam-id-label">Steam ID</div><div class="steam-id-val">${escapeHtml(steamId)}</div></div><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+  } else if (steamCallbackUrl) {
+    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()"><img src="https://steamcommunity-a.akamaihd.net/public/images/signinthroughsteam/sits_01.png" alt="Sign in through Steam" /></button>`;
+  }
 }
 
 function setStatus(live) {
@@ -870,7 +925,23 @@ let globalIdxHistory = []; // [{time, idx}] for sliding-window CPH
 const $ = (id) => document.getElementById(id);
 
 // ── Setup: restore last session from localStorage ────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  // Handle Steam auth return
+  const urlParams = new URLSearchParams(window.location.search);
+  const steamToken = urlParams.get('steamToken');
+  const steamId = urlParams.get('steamId');
+  if (steamToken && steamId) {
+    localStorage.setItem('cr_steamId', steamId);
+    if (db?.auth) {
+      try { await db.signInWithCustomToken(db.auth, steamToken); } catch (e) { console.warn('Steam sign-in failed:', e); }
+    }
+    window.history.replaceState({}, '', window.location.pathname);
+  } else if (urlParams.get('steamError')) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  updateSteamSection();
+
   const lastRoom = localStorage.getItem('cr_lastRoom');
   const lastName = localStorage.getItem('cr_lastName');
   if (lastRoom) $('room-input').value = lastRoom;
@@ -982,11 +1053,11 @@ async function joinSession() {
     const nKey = sanitize(myName);
     const meRef = ref(db.database, `sessions/${rKey}/raiders/${nKey}`);
 
+    const mySteamId = localStorage.getItem('cr_steamId') || null;
     if (savedCurrentIndex !== null) {
-      // Returning player: mark online, keep existing currentIndex/currentCode
-      await update(meRef, { name: myName, online: true });
+      await update(meRef, { name: myName, online: true, ...(mySteamId && { steamId: mySteamId }) });
     } else {
-      await set(meRef, { name: myName, online: true, joinedAt: Date.now() });
+      await set(meRef, { name: myName, online: true, joinedAt: Date.now(), ...(mySteamId && { steamId: mySteamId }) });
     }
     // Re-establish presence on every (re)connect so network hiccups don't leave stale offline status
     const connectedRef = ref(db.database, '.info/connected');
@@ -1112,6 +1183,19 @@ function renderCode(code, idx, animate) {
   const pct = (idx + 1) / TOTAL;
   $('ring-fg').style.strokeDashoffset = 175.9 - pct * 175.9;
   $('ring-pct').textContent = Math.round(pct * 100) + '%';
+  updateRecentDisplay();
+}
+
+function updateRecentDisplay() {
+  const container = $('recent-codes');
+  if (!container) return;
+  const recent = [];
+  for (let i = myHistoryPos - 1; i >= 0 && recent.length < 3; i--) {
+    recent.push(CODES[myHistory[i]]);
+  }
+  container.innerHTML = recent.length
+    ? recent.map(c => `<span class="recent-code">${c}</span>`).join('')
+    : '<span class="recent-empty">—</span>';
 }
 
 function renderRaiderList(raiders) {
@@ -1150,6 +1234,7 @@ async function leaveSession() {
   soloLocalTime = 0; localSessionStart = 0; globalIdxHistory = [];
   myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
+  $('recent-codes').innerHTML = '<span class="recent-empty">—</span>';
   $('raid-screen').classList.remove('active');
   $('setup-screen').classList.add('active');
   $('ring-fg').style.strokeDashoffset = 175.9;
@@ -1211,7 +1296,6 @@ window.addEventListener('keydown', (e) => {
   if (!$('raid-screen').classList.contains('active')) return;
   if (e.target.tagName === 'INPUT') return;
   if (e.key === 'ArrowRight' || e.key === '+') { e.preventDefault(); nextCode(); }
-  if (e.key === 'ArrowLeft'  || e.key === '-') { e.preventDefault(); prevCode(); }
 });
 
 // Expose for onclick handlers (module scope)

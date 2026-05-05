@@ -1,2 +1,5 @@
 # Firebase config with real credentials — never commit this
 firebase-config.js
+
+# Firebase cache
+.firebase/

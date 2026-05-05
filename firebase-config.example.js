@@ -1,5 +1,9 @@
 // Copy this file to firebase-config.js and fill in your real values.
 // firebase-config.js is gitignored and should never be committed.
+
+// Fill this in after deploying to Vercel
+export const STEAM_CALLBACK_URL = 'https://YOUR_VERCEL_APP.vercel.app/api/steam-callback';
+
 export const FIREBASE_CONFIG = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
