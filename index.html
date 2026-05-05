@@ -146,6 +146,31 @@
   .key-hint { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:-4px; flex-wrap:wrap; }
   .key-chip { padding:2px 8px; border:1px solid var(--border); background:var(--surface); font-size:9px; letter-spacing:2px; color:var(--muted); font-family:'Share Tech Mono',monospace; }
 
+  /* Targets section */
+  .targets-section { margin-top:12px; }
+  .targets-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .targets-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; }
+  .targets-add-btn { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; padding:3px 8px; cursor:pointer; transition:border-color .15s,color .15s; }
+  .targets-add-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .targets-list { display:flex; flex-direction:column; gap:4px; }
+  .target-row { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); padding:6px 10px; }
+  .target-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background .3s; }
+  .target-dot.online { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .target-dot.offline { background:var(--danger); }
+  .target-name { flex:1; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--text); letter-spacing:1px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .target-status { font-size:9px; font-family:'Share Tech Mono',monospace; letter-spacing:2px; color:var(--muted); flex-shrink:0; }
+  .target-status.online { color:var(--green); }
+  .target-status.offline { color:var(--danger); }
+  .target-remove { background:none; border:none; color:var(--muted); font-size:11px; cursor:pointer; padding:0 2px; line-height:1; transition:color .15s; flex-shrink:0; }
+  .target-remove:hover { color:var(--danger); }
+  .targets-add-row { display:flex; gap:6px; margin-top:6px; }
+  .targets-url-input { flex:1; height:36px; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'Share Tech Mono',monospace; font-size:11px; padding:0 10px; outline:none; transition:border-color .15s; -webkit-user-select:text; user-select:text; }
+  .targets-url-input:focus { border-color:var(--accent); }
+  .targets-url-input::placeholder { color:var(--dim); font-size:10px; }
+  .targets-confirm-btn { height:36px; padding:0 14px; background:#001e26; border:1px solid var(--accent); color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; cursor:pointer; transition:background .15s; flex-shrink:0; }
+  .targets-confirm-btn:hover { background:#002d38; }
+  .targets-empty { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+
   @keyframes digitSlide { 0%{transform:translateY(-30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
   .digit-anim { animation:digitSlide .2s ease; }
 
@@ -305,6 +330,18 @@
       <div class="stat-cell">
         <span class="s-label">Codes / Hr</span>
         <span class="s-val orange" id="stat-cpm">0.0</span>
+      </div>
+    </div>
+
+    <div class="targets-section">
+      <div class="targets-header">
+        <span class="targets-label">Targets</span>
+        <button class="targets-add-btn" onclick="showAddTarget()">+ ADD</button>
+      </div>
+      <div class="targets-list" id="targets-list"><span class="targets-empty">—</span></div>
+      <div class="targets-add-row" id="targets-add-row" style="display:none;">
+        <input class="targets-url-input" id="targets-url-input" type="text" placeholder="battlemetrics.com/players/12345 or just the ID" autocomplete="off" />
+        <button class="targets-confirm-btn" onclick="confirmAddTarget()">ADD</button>
       </div>
     </div>
 
@@ -969,8 +1006,11 @@ let myHistoryPos = -1;  // cursor into myHistory; NEXT walks forward before clai
 let lastClickTime = 0;  // rate-limit: 1 action per second
 let sessionListener = null;
 let presenceListener = null;
+let targetsListener = null;
 let refreshInterval = null;
 let totalTimeInterval = null;
+let targetsInterval = null;
+let targets = {};
 let soloLocalTime = 0;
 let localSessionStart = 0;
 let globalIdxHistory = []; // [{time, idx}] for sliding-window CPH
@@ -1148,6 +1188,22 @@ async function joinSession() {
       if (snap.exists()) renderRaiderList(snap.val().raiders || {});
     }, 10000);
 
+    // Listen for shared targets list
+    targetsListener = onValue(ref(db.database, `sessions/${rKey}/targets`), async (snap) => {
+      const data = snap.val() || {};
+      // Add any new targets from Firebase that aren't local yet
+      for (const [bmId, t] of Object.entries(data)) {
+        if (!targets[bmId]) targets[bmId] = { name: t.name, online: null, loading: true };
+      }
+      // Remove targets deleted by other raiders
+      for (const bmId of Object.keys(targets)) {
+        if (!data[bmId]) delete targets[bmId];
+      }
+      renderTargets();
+      await refreshTargetStatuses();
+    });
+    targetsInterval = setInterval(refreshTargetStatuses, 60000);
+
     if (savedCurrentIndex !== null && savedCurrentIndex > 0) {
       // Restore to their last code
       const restoreIdx = savedCurrentIndex - 1;
@@ -1285,8 +1341,11 @@ async function leaveSession() {
   }
   if (sessionListener) { sessionListener(); sessionListener = null; }
   if (presenceListener) { presenceListener(); presenceListener = null; }
+  if (targetsListener) { targetsListener(); targetsListener = null; }
   if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
   if (totalTimeInterval) { clearInterval(totalTimeInterval); totalTimeInterval = null; }
+  if (targetsInterval) { clearInterval(targetsInterval); targetsInterval = null; }
+  targets = {}; renderTargets();
   soloLocalTime = 0; localSessionStart = 0; globalIdxHistory = [];
   myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
@@ -1441,6 +1500,94 @@ async function analyzeCode() {
     </div>`;
 }
 
+// ── BattleMetrics Targets ────────────────────────────────────────────────────
+function extractBmId(input) {
+  const m = input.trim().match(/(?:battlemetrics\.com\/players\/)?(\d+)/);
+  return m ? m[1] : null;
+}
+
+function showAddTarget() {
+  const row = $('targets-add-row');
+  const visible = row.style.display !== 'none';
+  row.style.display = visible ? 'none' : 'flex';
+  if (!visible) setTimeout(() => $('targets-url-input').focus(), 50);
+}
+
+async function confirmAddTarget() {
+  const input = ($('targets-url-input').value || '').trim();
+  const bmId = extractBmId(input);
+  if (!bmId) { alert('Paste a BattleMetrics player URL or ID (e.g. battlemetrics.com/players/12345)'); return; }
+  if (targets[bmId]) { $('targets-add-row').style.display = 'none'; $('targets-url-input').value = ''; return; }
+
+  $('targets-url-input').value = '';
+  $('targets-add-row').style.display = 'none';
+
+  targets[bmId] = { name: 'Loading...', online: null, loading: true };
+  renderTargets();
+
+  try {
+    const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    targets[bmId] = { name: data.name, online: data.online, loading: false };
+
+    if (firebaseReady && roomCode) {
+      const { ref, set } = db.rtdb;
+      await set(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), { name: data.name, bmId, addedBy: myName });
+    }
+  } catch (e) {
+    delete targets[bmId];
+    alert('Could not find that BattleMetrics player. Check the URL or ID.');
+  }
+  renderTargets();
+}
+
+async function removeTarget(bmId) {
+  delete targets[bmId];
+  renderTargets();
+  if (firebaseReady && roomCode) {
+    try {
+      const { ref, remove } = db.rtdb;
+      await remove(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`));
+    } catch {}
+  }
+}
+
+function renderTargets() {
+  const list = $('targets-list');
+  if (!list) return;
+  const keys = Object.keys(targets);
+  if (!keys.length) { list.innerHTML = '<span class="targets-empty">—</span>'; return; }
+  list.innerHTML = keys.map(bmId => {
+    const t = targets[bmId];
+    const dotCls = t.loading ? '' : (t.online ? 'online' : 'offline');
+    const statusTxt = t.loading ? 'CHECKING' : (t.online ? 'ONLINE' : 'OFFLINE');
+    const statusCls = t.loading ? '' : (t.online ? 'online' : 'offline');
+    return `<div class="target-row">
+      <div class="target-dot ${dotCls}"></div>
+      <span class="target-name">${escapeHtml(t.name)}</span>
+      <span class="target-status ${statusCls}">${statusTxt}</span>
+      <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function refreshTargetStatuses() {
+  const keys = Object.keys(targets).filter(id => !targets[id].loading);
+  if (!keys.length) return;
+  await Promise.all(keys.map(async (bmId) => {
+    try {
+      const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false };
+      }
+    } catch {}
+  }));
+  renderTargets();
+}
+
 // Expose for onclick handlers (module scope)
 window.joinSession = joinSession;
 window.nextCode    = nextCode;
@@ -1453,8 +1600,12 @@ window.steamSignOut  = steamSignOut;
 window.showTestScreen = showTestScreen;
 window.backToSetup   = backToSetup;
 window.analyzeCode   = analyzeCode;
+window.showAddTarget     = showAddTarget;
+window.confirmAddTarget  = confirmAddTarget;
+window.removeTarget      = removeTarget;
 
 $('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
+$('targets-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAddTarget(); });
 </script>
 
 </body>
