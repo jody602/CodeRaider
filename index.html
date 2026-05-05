@@ -924,11 +924,13 @@ const TOTAL = CODES.length;
 let db = null;
 let firebaseReady = false;
 let steamCallbackUrl = null;
+let bmApiBase = '';
 
 try {
   const { FIREBASE_CONFIG, STEAM_CALLBACK_URL } = await import('./firebase-config.js');
   if (STEAM_CALLBACK_URL && !STEAM_CALLBACK_URL.includes('YOUR_VERCEL')) {
     steamCallbackUrl = STEAM_CALLBACK_URL;
+    bmApiBase = new URL(STEAM_CALLBACK_URL).origin;
   }
   if (FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('YOUR_')) {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
@@ -1212,7 +1214,7 @@ async function joinSession() {
       if (newBmIds.length) {
         await Promise.all(newBmIds.map(async (bmId) => {
           try {
-            const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+            const res = await fetch(`${bmApiBase}/api/battlemetrics?id=${bmId}`);
             if (!res.ok) return;
             const d = await res.json();
             if (d.error) return;
@@ -1548,7 +1550,7 @@ async function confirmAddTarget() {
   renderTargets();
 
   try {
-    const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+    const res = await fetch(`${bmApiBase}/api/battlemetrics?id=${bmId}`);
     const data = await res.json();
     if (data.error === 'no_token') throw new Error('__no_token__');
     if (!res.ok || data.error) throw new Error(data.error || 'Not found');
@@ -1607,7 +1609,7 @@ async function refreshTargetStatuses() {
   if (!keys.length) return;
   await Promise.all(keys.map(async (bmId) => {
     try {
-      const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+      const res = await fetch(`${bmApiBase}/api/battlemetrics?id=${bmId}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data.error) return;
