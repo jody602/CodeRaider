@@ -1,10 +1,13 @@
 async function getOnlineStatus(bmId, headers) {
   try {
-    const params = new URLSearchParams({ 'filter[players]': bmId, 'sort': '-start', 'page[size]': '1' });
-    const res = await fetch(`https://api.battlemetrics.com/sessions?${params}`, { headers });
+    // Literal brackets required — URLSearchParams encodes them as %5B%5D which BattleMetrics ignores
+    const res = await fetch(
+      `https://api.battlemetrics.com/sessions?filter[players]=${bmId}&filter[status]=open&page[size]=1`,
+      { headers }
+    );
     if (!res.ok) return false;
     const data = await res.json();
-    return data.data?.[0]?.attributes?.stop === null;
+    return Array.isArray(data.data) && data.data.length > 0;
   } catch {
     return false;
   }
@@ -31,8 +34,10 @@ module.exports = async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid Steam ID (must be 17-digit Steam64 ID)' });
       }
 
-      const params = new URLSearchParams({ 'filter[search]': steamId, 'page[size]': '1' });
-      const searchRes = await fetch(`https://api.battlemetrics.com/players?${params}`, { headers });
+      const searchRes = await fetch(
+        `https://api.battlemetrics.com/players?filter[search]=${encodeURIComponent(steamId)}&page[size]=1`,
+        { headers }
+      );
       if (!searchRes.ok) {
         return res.status(searchRes.status).json({ error: `BattleMetrics error ${searchRes.status}` });
       }

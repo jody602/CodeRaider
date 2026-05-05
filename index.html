@@ -1227,7 +1227,7 @@ async function joinSession() {
         renderTargets();
       }
     });
-    targetsInterval = setInterval(refreshTargetStatuses, 60000);
+    targetsInterval = setInterval(refreshTargetStatuses, 120000);
 
     if (savedCurrentIndex !== null && savedCurrentIndex > 0) {
       // Restore to their last code
