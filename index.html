@@ -979,8 +979,8 @@ let globalIdxHistory = []; // [{time, idx}] for sliding-window CPH
 const $ = (id) => document.getElementById(id);
 
 // ── Setup: restore last session from localStorage ────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  // Handle Steam auth return
+// (module scripts are deferred — DOM is already ready here, no need for DOMContentLoaded)
+{
   const urlParams = new URLSearchParams(window.location.search);
   const steamToken = urlParams.get('steamToken');
   const steamId = urlParams.get('steamId');
@@ -1011,7 +1011,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     $('room-input').value = $('room-input').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     updateBanner();
   });
-});
+}
 
 async function updateBanner() {
   const room = $('room-input').value.trim();
