@@ -42,6 +42,7 @@ module.exports = async function handler(req, res) {
     res.redirect(`${appUrl}?steamToken=${encodeURIComponent(token)}&steamId=${steamId}`);
   } catch (err) {
     console.error('Steam auth error:', err);
-    res.redirect(`${appUrl}?steamError=server`);
+    const msg = encodeURIComponent((err && err.message) ? err.message.slice(0, 200) : 'unknown');
+    res.redirect(`${appUrl}?steamError=server&steamMsg=${msg}`);
   }
 };

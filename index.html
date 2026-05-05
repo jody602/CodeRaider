@@ -107,14 +107,34 @@
   .ctrl-btn.leave { font-size:11px; letter-spacing:2px; }
 
   /* Steam sign-in */
-  .steam-section { width:100%; margin-bottom:20px; }
-  .steam-btn { display:block; background:none; border:none; padding:0; cursor:pointer; }
-  .steam-btn img { height:40px; display:block; }
-  .steam-signed-in { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#0a1a0a; border:1px solid #1a3a1a; }
-  .steam-id-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; margin-bottom:2px; }
-  .steam-id-val { font-size:12px; font-family:'Share Tech Mono',monospace; color:var(--green); letter-spacing:1px; }
-  .steam-signout { background:none; border:none; color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; cursor:pointer; text-decoration:underline; padding:0; }
+  .steam-section { width:100%; margin-bottom:16px; }
+  .steam-btn { width:100%; height:44px; background:#0a1520; border:1px solid #2a5a8a; color:#6aaad4; cursor:pointer; font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; transition:background .15s,border-color .15s,color .15s; }
+  .steam-btn:hover { background:#0f1e2e; border-color:#4a8abf; color:#8bbfe8; }
+  .steam-btn:active { background:#081018; }
+  .steam-btn svg { flex-shrink:0; }
+  .steam-signed-in { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:transparent; border:1px solid #1a2a1a; }
+  .steam-id-label { font-size:9px; letter-spacing:2px; color:var(--dim); font-family:'Share Tech Mono',monospace; }
+  .steam-id-val { font-size:10px; font-family:'Share Tech Mono',monospace; color:#3a7a4a; letter-spacing:1px; }
+  .steam-signout { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; }
   .steam-signout:hover { color:var(--danger); }
+
+  /* Test Your Code screen */
+  #test-screen { justify-content:center; padding:24px 8px; gap:0; }
+  .test-gate { display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px 0; }
+  .test-gate-msg { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; color:var(--muted); text-align:center; line-height:1.8; }
+  #test-content { display:flex; flex-direction:column; width:100%; }
+  .test-result-box { width:100%; margin-top:20px; background:var(--surface); border:1px solid var(--border); }
+  .test-stat-row { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--border); }
+  .test-stat-row:last-child { border-bottom:none; }
+  .test-s-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; }
+  .test-s-val { font-size:20px; font-weight:700; font-family:'Share Tech Mono',monospace; color:var(--accent); }
+  .test-s-val.danger { color:var(--danger); }
+  .test-s-val.warn { color:var(--accent2); }
+  .test-s-val.safe { color:var(--green); }
+  .test-not-found { margin-top:20px; padding:20px; border:1px solid #1a3a1a; background:#040e04; text-align:center; }
+  .test-not-found-icon { font-size:28px; color:var(--green); margin-bottom:8px; }
+  .test-not-found-title { font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:2px; color:var(--green); margin-bottom:6px; }
+  .test-not-found-sub { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--muted); }
 
   .recent-section { margin-top:12px; margin-bottom:4px; }
   .recent-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; margin-bottom:8px; }
@@ -214,6 +234,28 @@
       Works on phone, tablet, or desktop.
     </p>
     <button class="info-btn" onclick="openInfo()">? WHY THIS WORKS</button>
+    <button class="info-btn" onclick="showTestScreen()" style="margin-top:6px;border-color:var(--accent);color:var(--accent);background:#001a22;">⬡ TEST YOUR CODE</button>
+  </div>
+
+  <!-- TEST YOUR CODE -->
+  <div class="screen" id="test-screen">
+    <p class="setup-title">Analyse</p>
+    <h1 class="setup-heading">TEST YOUR CODE</h1>
+
+    <div class="test-gate" id="test-gate" style="display:none;">
+      <p class="test-gate-msg">STEAM SIGN-IN REQUIRED<br><span style="color:var(--dim)">Sign in with Steam on the previous screen<br>to use this feature.</span></p>
+      <button class="info-btn" onclick="backToSetup()" style="margin-top:4px;">← BACK TO SIGN IN</button>
+    </div>
+
+    <div id="test-content" style="display:none;">
+      <div class="field-group">
+        <label>Your Code</label>
+        <input class="text-input" id="test-input" type="text" placeholder="e.g. 1234" maxlength="10" autocomplete="off" inputmode="numeric" />
+      </div>
+      <button class="start-btn" onclick="analyzeCode()">▶ ANALYSE CODE</button>
+      <div id="test-result"></div>
+      <button class="info-btn" onclick="backToSetup()" style="margin-top:16px;">← BACK</button>
+    </div>
   </div>
 
   <!-- RAID -->
@@ -870,6 +912,18 @@ try {
   document.getElementById('firebase-warn').classList.add('show');
 }
 
+// Render Steam section now that steamCallbackUrl is resolved
+const STEAM_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.187.008l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.606 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.455 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.662 0 3.015-1.35 3.015-3.015zm-5.273.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.252 0-2.265-1.014-2.265-2.265z"/></svg>`;
+document.getElementById('steam-section') && (() => {
+  const steamId = localStorage.getItem('cr_steamId');
+  const section = document.getElementById('steam-section');
+  if (steamId) {
+    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">${steamId}</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+  } else if (steamCallbackUrl) {
+    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
+  }
+})();
+
 // ── Steam auth ────────────────────────────────────────────────────────────────
 function steamSignIn() {
   if (!steamCallbackUrl) return alert('Steam login not configured yet.');
@@ -895,9 +949,9 @@ function updateSteamSection() {
   if (!section) return;
   const steamId = localStorage.getItem('cr_steamId');
   if (steamId) {
-    section.innerHTML = `<div class="steam-signed-in"><div><div class="steam-id-label">Steam ID</div><div class="steam-id-val">${escapeHtml(steamId)}</div></div><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">${escapeHtml(steamId)}</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
   } else if (steamCallbackUrl) {
-    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()"><img src="https://steamcommunity-a.akamaihd.net/public/images/signinthroughsteam/sits_01.png" alt="Sign in through Steam" /></button>`;
+    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
   }
 }
 
@@ -937,6 +991,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     window.history.replaceState({}, '', window.location.pathname);
   } else if (urlParams.get('steamError')) {
+    const msg = urlParams.get('steamMsg') || urlParams.get('steamError');
+    alert('Steam auth failed: ' + msg);
     window.history.replaceState({}, '', window.location.pathname);
   }
 
@@ -1298,13 +1354,107 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight' || e.key === '+') { e.preventDefault(); nextCode(); }
 });
 
+// ── Test Your Code ───────────────────────────────────────────────────────────
+function showTestScreen() {
+  $('setup-screen').classList.remove('active');
+  $('test-screen').classList.add('active');
+  $('test-result').innerHTML = '';
+  const steamId = localStorage.getItem('cr_steamId');
+  if (steamId) {
+    $('test-gate').style.display = 'none';
+    $('test-content').style.display = 'flex';
+    $('test-content').style.flexDirection = 'column';
+    setTimeout(() => $('test-input').focus(), 50);
+  } else {
+    $('test-gate').style.display = 'flex';
+    $('test-content').style.display = 'none';
+  }
+}
+
+function backToSetup() {
+  $('test-screen').classList.remove('active');
+  $('setup-screen').classList.add('active');
+}
+
+function formatGuessTime(hours) {
+  if (hours < 1 / 60) return '< 1 MIN';
+  if (hours < 1) { const m = Math.round(hours * 60); return `${m} MIN`; }
+  if (hours < 24) {
+    const h = Math.floor(hours), m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}H ${m}M` : `${h}H`;
+  }
+  const d = Math.floor(hours / 24), h = Math.round(hours % 24);
+  return h > 0 ? `${d}D ${h}H` : `${d}D`;
+}
+
+async function analyzeCode() {
+  const code = ($('test-input').value || '').trim();
+  if (!code) return;
+  const steamId = localStorage.getItem('cr_steamId');
+  if (!steamId) return;
+
+  const idx = CODES.indexOf(code);
+  const found = idx >= 0;
+  const position = found ? idx + 1 : -1;
+
+  if (firebaseReady) {
+    try {
+      const { ref, push, set } = db.rtdb;
+      const newRef = push(ref(db.database, `code_tests/${steamId}`));
+      await set(newRef, { code, position, found, steamId, timestamp: Date.now() });
+    } catch (e) { /* log best-effort */ }
+  }
+
+  if (!found) {
+    $('test-result').innerHTML = `
+      <div class="test-not-found">
+        <div class="test-not-found-icon">✓</div>
+        <div class="test-not-found-title">"${escapeHtml(code)}" IS NOT IN THE LIST</div>
+        <div class="test-not-found-sub">This code does not appear in our guessing sequence.</div>
+      </div>`;
+    return;
+  }
+
+  const hours = position / 200;
+  const timeStr = formatGuessTime(hours);
+  const riskClass = position <= 20 ? 'danger' : position <= 200 ? 'warn' : 'safe';
+  const riskLabel = position <= 20 ? 'CRITICAL' : position <= 200 ? 'HIGH RISK' : position <= 1000 ? 'MODERATE' : 'LOW RISK';
+
+  $('test-result').innerHTML = `
+    <div class="test-result-box">
+      <div class="test-stat-row">
+        <span class="test-s-label">List Position</span>
+        <span class="test-s-val">#${position} <span style="font-size:12px;color:var(--muted)">of ${TOTAL}</span></span>
+      </div>
+      <div class="test-stat-row">
+        <span class="test-s-label">Time to Guess</span>
+        <span class="test-s-val">${timeStr}</span>
+      </div>
+      <div class="test-stat-row">
+        <span class="test-s-label">@ 200 codes / hr</span>
+        <span class="test-s-val" style="font-size:12px;color:var(--muted)">1 raider, worst case</span>
+      </div>
+      <div class="test-stat-row">
+        <span class="test-s-label">Risk Level</span>
+        <span class="test-s-val ${riskClass}">${riskLabel}</span>
+      </div>
+    </div>`;
+}
+
 // Expose for onclick handlers (module scope)
 window.joinSession = joinSession;
 window.nextCode    = nextCode;
 window.prevCode    = prevCode;
 window.leaveSession = leaveSession;
-window.openInfo    = openInfo;
-window.closeInfo   = closeInfo;
+window.openInfo      = openInfo;
+window.closeInfo     = closeInfo;
+window.steamSignIn   = steamSignIn;
+window.steamSignOut  = steamSignOut;
+window.showTestScreen = showTestScreen;
+window.backToSetup   = backToSetup;
+window.analyzeCode   = analyzeCode;
+
+$('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
 </script>
 
 </body>

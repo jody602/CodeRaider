@@ -1,0 +1,7 @@
+firebase.json
+.firebase/
+**/node_modules/**
+package.json
+package-lock.json
+api/
+firebase-config.example.js
