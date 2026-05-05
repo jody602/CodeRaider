@@ -1188,19 +1188,41 @@ async function joinSession() {
       if (snap.exists()) renderRaiderList(snap.val().raiders || {});
     }, 10000);
 
-    // Listen for shared targets list
+    // Listen for shared targets list — online/lastChecked written by whichever raider last refreshed
     targetsListener = onValue(ref(db.database, `sessions/${rKey}/targets`), async (snap) => {
       const data = snap.val() || {};
-      // Add any new targets from Firebase that aren't local yet
+      const newBmIds = [];
       for (const [bmId, t] of Object.entries(data)) {
-        if (!targets[bmId]) targets[bmId] = { name: t.name, online: null, loading: true };
+        if (!targets[bmId]) {
+          // Use stored online status if present; only set loading if we've never seen status
+          const hasStatus = t.online !== undefined && t.online !== null;
+          targets[bmId] = { name: t.name, online: hasStatus ? t.online : null, loading: !hasStatus };
+          if (!hasStatus) newBmIds.push(bmId);
+        } else {
+          // Sync status changes written by other raiders
+          targets[bmId].name = t.name;
+          if (t.online !== undefined) targets[bmId].online = t.online;
+        }
       }
-      // Remove targets deleted by other raiders
       for (const bmId of Object.keys(targets)) {
         if (!data[bmId]) delete targets[bmId];
       }
       renderTargets();
-      await refreshTargetStatuses();
+      // Only fetch fresh status for targets with no stored status yet
+      if (newBmIds.length) {
+        await Promise.all(newBmIds.map(async (bmId) => {
+          try {
+            const res = await fetch(`/api/battlemetrics?id=${bmId}`);
+            if (!res.ok) return;
+            const d = await res.json();
+            if (d.error) return;
+            targets[bmId] = { ...targets[bmId], name: d.name, online: d.online, loading: false };
+            const { ref: r2, update: u2 } = db.rtdb;
+            await u2(r2(db.database, `sessions/${rKey}/targets/${bmId}`), { online: d.online, lastChecked: Date.now() });
+          } catch {}
+        }));
+        renderTargets();
+      }
     });
     targetsInterval = setInterval(refreshTargetStatuses, 60000);
 
@@ -1534,7 +1556,10 @@ async function confirmAddTarget() {
 
     if (firebaseReady && roomCode) {
       const { ref, set } = db.rtdb;
-      await set(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), { name: data.name, bmId, addedBy: myName });
+      await set(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
+        name: data.name, bmId, addedBy: myName,
+        online: data.online, lastChecked: Date.now(),
+      });
     }
   } catch (e) {
     delete targets[bmId];
@@ -1579,9 +1604,15 @@ async function refreshTargetStatuses() {
   await Promise.all(keys.map(async (bmId) => {
     try {
       const res = await fetch(`/api/battlemetrics?id=${bmId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (!data.error) targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false };
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.error) return;
+      targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false };
+      if (firebaseReady && roomCode) {
+        const { ref, update } = db.rtdb;
+        await update(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
+          online: data.online, lastChecked: Date.now(),
+        });
       }
     } catch {}
   }));
