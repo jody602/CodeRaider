@@ -1,20 +1,26 @@
 async function getOnlineStatus(bmId, headers) {
   try {
-    // Literal brackets required — URLSearchParams encodes them as %5B%5D which BattleMetrics ignores
     const res = await fetch(
       `https://api.battlemetrics.com/sessions?filter[players]=${bmId}&filter[status]=open&page[size]=1`,
       { headers }
     );
-    if (!res.ok) return false;
-    const data = await res.json();
-    return Array.isArray(data.data) && data.data.length > 0;
-  } catch {
-    return false;
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { return { online: false, _debug: `parse error: ${text.slice(0, 300)}` }; }
+    if (!res.ok) return { online: false, _debug: `sessions ${res.status}: ${text.slice(0, 300)}` };
+    const online = Array.isArray(data.data) && data.data.length > 0;
+    return {
+      online,
+      _debug: `status=${res.status} count=${data.data?.length} first_stop=${data.data?.[0]?.attributes?.stop ?? 'none'}`,
+    };
+  } catch (e) {
+    return { online: false, _debug: `exception: ${e.message}` };
   }
 }
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (!process.env.BM_TOKEN) {
@@ -27,13 +33,12 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    // Steam64 ID lookup — find the BattleMetrics player by Steam ID
+    // Steam64 ID lookup
     if (req.query.steam) {
       const steamId = req.query.steam.trim();
       if (!/^\d{17}$/.test(steamId)) {
         return res.status(400).json({ error: 'Invalid Steam ID (must be 17-digit Steam64 ID)' });
       }
-
       const searchRes = await fetch(
         `https://api.battlemetrics.com/players?filter[search]=${encodeURIComponent(steamId)}&page[size]=1`,
         { headers }
@@ -41,17 +46,15 @@ module.exports = async function handler(req, res) {
       if (!searchRes.ok) {
         return res.status(searchRes.status).json({ error: `BattleMetrics error ${searchRes.status}` });
       }
-
       const searchData = await searchRes.json();
       if (!searchData.data?.length) {
         return res.status(404).json({ error: 'Player not found on BattleMetrics' });
       }
-
       const player = searchData.data[0];
       const bmId = player.id;
       const name = player.attributes?.name || 'Unknown';
-      const online = await getOnlineStatus(bmId, headers);
-      return res.json({ id: bmId, name, online });
+      const { online, _debug } = await getOnlineStatus(bmId, headers);
+      return res.json({ id: bmId, name, online, _debug });
     }
 
     // BattleMetrics player ID lookup
@@ -63,14 +66,14 @@ module.exports = async function handler(req, res) {
     const playerRes = await fetch(`https://api.battlemetrics.com/players/${id}`, { headers });
     if (!playerRes.ok) {
       const body = await playerRes.text();
-      return res.status(playerRes.status).json({ error: `BattleMetrics error ${playerRes.status}`, detail: body.slice(0, 200) });
+      return res.status(playerRes.status).json({ error: `BattleMetrics error ${playerRes.status}`, detail: body.slice(0, 300) });
     }
 
     const playerData = await playerRes.json();
     const name = playerData.data?.attributes?.name || 'Unknown';
-    const online = await getOnlineStatus(id, headers);
+    const { online, _debug } = await getOnlineStatus(id, headers);
 
-    res.json({ id, name, online });
+    res.json({ id, name, online, _debug });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
