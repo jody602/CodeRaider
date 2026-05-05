@@ -1628,7 +1628,6 @@ async function refreshTargetStatuses() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.error) return;
-      console.log(`[BM] ${data.name} (${bmId}): online=${data.online} | ${data._debug}`);
       targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false };
       if (firebaseReady && roomCode) {
         const { ref, update } = db.rtdb;

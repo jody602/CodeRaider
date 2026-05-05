@@ -7,15 +7,12 @@ async function getOnlineStatus(bmId, headers) {
     );
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); } catch { return { online: false, _debug: `parse error: ${text.slice(0, 300)}` }; }
-    if (!res.ok) return { online: false, _debug: `sessions ${res.status}: ${text.slice(0, 300)}` };
+    try { data = JSON.parse(text); } catch { return { online: false }; }
+    if (!res.ok) return { online: false };
     const online = Array.isArray(data.data) && data.data.some(s => s.attributes?.stop === null);
-    return {
-      online,
-      _debug: `status=${res.status} count=${data.data?.length} online=${online}`,
-    };
-  } catch (e) {
-    return { online: false, _debug: `exception: ${e.message}` };
+    return { online };
+  } catch {
+    return { online: false };
   }
 }
 
@@ -54,8 +51,8 @@ module.exports = async function handler(req, res) {
       const player = searchData.data[0];
       const bmId = player.id;
       const name = player.attributes?.name || 'Unknown';
-      const { online, _debug } = await getOnlineStatus(bmId, headers);
-      return res.json({ id: bmId, name, online, _debug });
+      const { online } = await getOnlineStatus(bmId, headers);
+      return res.json({ id: bmId, name, online });
     }
 
     // BattleMetrics player ID lookup
@@ -72,9 +69,9 @@ module.exports = async function handler(req, res) {
 
     const playerData = await playerRes.json();
     const name = playerData.data?.attributes?.name || 'Unknown';
-    const { online, _debug } = await getOnlineStatus(id, headers);
+    const { online } = await getOnlineStatus(id, headers);
 
-    res.json({ id, name, online, _debug });
+    res.json({ id, name, online });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
