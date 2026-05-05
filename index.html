@@ -1549,9 +1549,9 @@ async function confirmAddTarget() {
 
   try {
     const res = await fetch(`/api/battlemetrics?id=${bmId}`);
-    if (!res.ok) throw new Error('Not found');
     const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    if (data.error === 'no_token') throw new Error('__no_token__');
+    if (!res.ok || data.error) throw new Error(data.error || 'Not found');
     targets[bmId] = { name: data.name, online: data.online, loading: false };
 
     if (firebaseReady && roomCode) {
@@ -1563,7 +1563,11 @@ async function confirmAddTarget() {
     }
   } catch (e) {
     delete targets[bmId];
-    alert('Could not find that BattleMetrics player. Check the URL or ID.');
+    if (e.message === '__no_token__') {
+      alert('BattleMetrics API token not set.\n\nAdd BM_TOKEN to your Vercel environment variables.\nGet a free token at: battlemetrics.com/developers/applications');
+    } else {
+      alert('Could not find that BattleMetrics player. Check the URL or ID.');
+    }
   }
   renderTargets();
 }
