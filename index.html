@@ -157,7 +157,8 @@
   .target-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background .3s; }
   .target-dot.online { background:var(--green); box-shadow:0 0 6px var(--green); }
   .target-dot.offline { background:var(--danger); }
-  .target-name { flex:1; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--text); letter-spacing:1px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .target-name { flex:1; font-size:11px; font-family:'Share Tech Mono',monospace; color:var(--text); letter-spacing:1px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; }
+  .target-name:hover { color:var(--accent); }
   .target-status { font-size:9px; font-family:'Share Tech Mono',monospace; letter-spacing:2px; color:var(--muted); flex-shrink:0; }
   .target-status.online { color:var(--green); }
   .target-status.offline { color:var(--danger); }
@@ -340,7 +341,7 @@
       </div>
       <div class="targets-list" id="targets-list"><span class="targets-empty">—</span></div>
       <div class="targets-add-row" id="targets-add-row" style="display:none;">
-        <input class="targets-url-input" id="targets-url-input" type="text" placeholder="battlemetrics.com/players/12345 or just the ID" autocomplete="off" />
+        <input class="targets-url-input" id="targets-url-input" type="text" placeholder="BattleMetrics URL/ID or Steam URL/ID" autocomplete="off" />
         <button class="targets-confirm-btn" onclick="confirmAddTarget()">ADD</button>
       </div>
     </div>
@@ -1190,35 +1191,35 @@ async function joinSession() {
       if (snap.exists()) renderRaiderList(snap.val().raiders || {});
     }, 10000);
 
-    // Listen for shared targets list — online/lastChecked written by whichever raider last refreshed
+    // Listen for shared targets list
+    let firstTargetsLoad = true;
     targetsListener = onValue(ref(db.database, `sessions/${rKey}/targets`), async (snap) => {
       const data = snap.val() || {};
       const newBmIds = [];
       for (const [bmId, t] of Object.entries(data)) {
         if (!targets[bmId]) {
-          // Use stored online status if present; only set loading if we've never seen status
-          const hasStatus = t.online !== undefined && t.online !== null;
-          targets[bmId] = { name: t.name, online: hasStatus ? t.online : null, loading: !hasStatus };
-          if (!hasStatus) newBmIds.push(bmId);
+          targets[bmId] = { name: t.name, online: t.online ?? null, loading: true };
+          newBmIds.push(bmId);
         } else {
-          // Sync status changes written by other raiders
           targets[bmId].name = t.name;
-          if (t.online !== undefined) targets[bmId].online = t.online;
         }
       }
       for (const bmId of Object.keys(targets)) {
         if (!data[bmId]) delete targets[bmId];
       }
       renderTargets();
-      // Only fetch fresh status for targets with no stored status yet
-      if (newBmIds.length) {
+      if (firstTargetsLoad) {
+        firstTargetsLoad = false;
+        await refreshTargetStatuses(); // always get fresh status on join
+      } else if (newBmIds.length) {
+        // another raider added a target — fetch only the new ones
         await Promise.all(newBmIds.map(async (bmId) => {
           try {
             const res = await fetch(`${bmApiBase}/api/battlemetrics?id=${bmId}`);
             if (!res.ok) return;
             const d = await res.json();
             if (d.error) return;
-            targets[bmId] = { ...targets[bmId], name: d.name, online: d.online, loading: false };
+            targets[bmId] = { ...targets[bmId], online: d.online, loading: false };
             const { ref: r2, update: u2 } = db.rtdb;
             await u2(r2(db.database, `sessions/${rKey}/targets/${bmId}`), { online: d.online, lastChecked: Date.now() });
           } catch {}
@@ -1525,9 +1526,15 @@ async function analyzeCode() {
 }
 
 // ── BattleMetrics Targets ────────────────────────────────────────────────────
-function extractBmId(input) {
-  const m = input.trim().match(/(?:battlemetrics\.com\/players\/)?(\d+)/);
-  return m ? m[1] : null;
+function parseTargetInput(raw) {
+  const s = raw.trim();
+  const bmUrl = s.match(/battlemetrics\.com\/players\/(\d+)/);
+  if (bmUrl) return { type: 'bm', id: bmUrl[1] };
+  const steamUrl = s.match(/steamcommunity\.com\/profiles\/(\d{17})/);
+  if (steamUrl) return { type: 'steam', id: steamUrl[1] };
+  if (/^7656119\d{10}$/.test(s)) return { type: 'steam', id: s };
+  if (/^\d+$/.test(s)) return { type: 'bm', id: s };
+  return null;
 }
 
 function showAddTarget() {
@@ -1539,36 +1546,44 @@ function showAddTarget() {
 
 async function confirmAddTarget() {
   const input = ($('targets-url-input').value || '').trim();
-  const bmId = extractBmId(input);
-  if (!bmId) { alert('Paste a BattleMetrics player URL or ID (e.g. battlemetrics.com/players/12345)'); return; }
-  if (targets[bmId]) { $('targets-add-row').style.display = 'none'; $('targets-url-input').value = ''; return; }
+  const parsed = parseTargetInput(input);
+  if (!parsed) { alert('Enter a BattleMetrics URL/ID or Steam profile URL / Steam64 ID'); return; }
 
   $('targets-url-input').value = '';
   $('targets-add-row').style.display = 'none';
 
-  targets[bmId] = { name: 'Loading...', online: null, loading: true };
+  const tempKey = parsed.type === 'steam' ? `_s${parsed.id}` : parsed.id;
+  if (targets[tempKey] || (parsed.type === 'bm' && targets[parsed.id])) return;
+
+  targets[tempKey] = { name: 'Looking up...', online: null, loading: true };
   renderTargets();
 
   try {
-    const res = await fetch(`${bmApiBase}/api/battlemetrics?id=${bmId}`);
+    const url = parsed.type === 'steam'
+      ? `${bmApiBase}/api/battlemetrics?steam=${parsed.id}`
+      : `${bmApiBase}/api/battlemetrics?id=${parsed.id}`;
+    const res = await fetch(url);
     const data = await res.json();
     if (data.error === 'no_token') throw new Error('__no_token__');
     if (!res.ok || data.error) throw new Error(data.error || 'Not found');
-    targets[bmId] = { name: data.name, online: data.online, loading: false };
 
+    const bmId = data.id;
+    delete targets[tempKey];
+    if (targets[bmId]) { renderTargets(); return; }
+
+    targets[bmId] = { name: data.name, online: data.online, loading: false };
     if (firebaseReady && roomCode) {
       const { ref, set } = db.rtdb;
       await set(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
-        name: data.name, bmId, addedBy: myName,
-        online: data.online, lastChecked: Date.now(),
+        name: data.name, bmId, addedBy: myName, online: data.online, lastChecked: Date.now(),
       });
     }
   } catch (e) {
-    delete targets[bmId];
+    delete targets[tempKey];
     if (e.message === '__no_token__') {
       alert('BattleMetrics API token not set.\n\nAdd BM_TOKEN to your Vercel environment variables.\nGet a free token at: battlemetrics.com/developers/applications');
     } else {
-      alert('Could not find that BattleMetrics player. Check the URL or ID.');
+      alert('Could not find that player. Check the URL or ID.');
     }
   }
   renderTargets();
@@ -1597,7 +1612,7 @@ function renderTargets() {
     const statusCls = t.loading ? '' : (t.online ? 'online' : 'offline');
     return `<div class="target-row">
       <div class="target-dot ${dotCls}"></div>
-      <span class="target-name">${escapeHtml(t.name)}</span>
+      <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
       <span class="target-status ${statusCls}">${statusTxt}</span>
       <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
     </div>`;
