@@ -3,13 +3,14 @@ const { getAuth } = require('firebase-admin/auth');
 
 function parsePrivateKey(raw) {
   if (!raw) throw new Error('FIREBASE_PRIVATE_KEY env var is not set');
-  // Handle literal \n strings (common when pasting into Vercel UI)
-  let key = raw.replace(/\\n/g, '\n').trim();
   const HEADER = '-----BEGIN PRIVATE KEY-----';
   const FOOTER = '-----END PRIVATE KEY-----';
-  if (!key.includes(HEADER)) throw new Error('Private key missing PEM header');
-  // If the base64 body has no newlines, reformat it with 64-char lines
-  const bodyRaw = key.replace(HEADER, '').replace(FOOTER, '').replace(/\s/g, '');
+  // Handle literal \n strings
+  let key = raw.replace(/\\n/g, '\n').trim();
+  // Strip header/footer if present, then rebuild cleanly
+  const bodyRaw = key
+    .replace(HEADER, '').replace(FOOTER, '')
+    .replace(/\s/g, '');
   const lines = bodyRaw.match(/.{1,64}/g) || [];
   return `${HEADER}\n${lines.join('\n')}\n${FOOTER}\n`;
 }
