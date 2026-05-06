@@ -222,6 +222,11 @@
   .info-table td { font-size:13px; color:var(--text); font-family:'Share Tech Mono',monospace; padding:10px 0; border-bottom:1px solid #131d27; text-align:center; }
   .info-table td:last-child { color:var(--accent2); }
   .info-table tr:last-child td { border-bottom:none; }
+  .site-footer { width:100%; max-width:520px; padding:20px 8px 8px; text-align:center; }
+  .site-footer p { font-size:10px; letter-spacing:1px; color:var(--muted); font-family:'Share Tech Mono',monospace; line-height:1.8; }
+  .site-footer a { color:var(--dim); text-decoration:none; transition:color .2s; }
+  .site-footer a:hover { color:var(--accent); }
+  .site-footer .footer-sep { margin:0 8px; opacity:.4; }
 </style>
 </head>
 <body>
@@ -424,6 +429,10 @@
     <button class="done-btn" onclick="leaveSession()">EXIT</button>
   </div>
 </div>
+
+<footer class="site-footer">
+  <p>© 2026 CodeRaider<span class="footer-sep">|</span><a href="privacy.html">Privacy Policy</a><span class="footer-sep">|</span><a href="terms.html">Terms of Use</a></p>
+</footer>
 
 <!-- Firebase SDK (loaded from CDN, modular) -->
 <script type="module">
@@ -969,7 +978,7 @@ document.getElementById('steam-section') && (() => {
   const steamId = localStorage.getItem('cr_steamId');
   const section = document.getElementById('steam-section');
   if (steamId) {
-    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">${steamId}</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">CONNECTED</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
   } else if (steamCallbackUrl) {
     section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
   }
@@ -1000,7 +1009,7 @@ function updateSteamSection() {
   if (!section) return;
   const steamId = localStorage.getItem('cr_steamId');
   if (steamId) {
-    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">${escapeHtml(steamId)}</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">CONNECTED</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
   } else if (steamCallbackUrl) {
     section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
   }

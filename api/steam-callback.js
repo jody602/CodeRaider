@@ -44,7 +44,7 @@ function extractSteamId(claimedId) {
 }
 
 module.exports = async function handler(req, res) {
-  const appUrl = process.env.APP_URL || 'https://codeasehg.web.app';
+  const appUrl = process.env.APP_URL || 'https://coderaid.win';
   try {
     if (!await verifySteamLogin(req.query)) {
       return res.redirect(`${appUrl}?steamError=invalid`);

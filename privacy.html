@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#080b0f" />
+<title>Privacy Policy — CodeRaider</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#080b0f; --surface:#0e1318; --border:#1e2d3d;
+    --accent:#00e5ff; --accent2:#ff6b35; --dim:#3a5068;
+    --text:#c8d8e8; --muted:#4a6278;
+  }
+  html, body { min-height:100vh; background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; }
+  body { display:flex; flex-direction:column; align-items:center; padding:24px 16px 40px; }
+  .wrap { width:100%; max-width:680px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding-bottom:24px; border-bottom:1px solid var(--border); margin-bottom:32px; }
+  .logo { font-size:13px; letter-spacing:4px; color:var(--accent); font-family:'Share Tech Mono',monospace; text-decoration:none; }
+  .back { font-size:11px; letter-spacing:2px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-decoration:none; transition:color .2s; }
+  .back:hover { color:var(--accent); }
+  h1 { font-size:28px; font-weight:700; color:var(--accent); letter-spacing:2px; margin-bottom:6px; }
+  .updated { font-size:11px; letter-spacing:2px; color:var(--muted); font-family:'Share Tech Mono',monospace; margin-bottom:36px; }
+  h2 { font-size:14px; font-weight:700; letter-spacing:3px; color:var(--accent2); text-transform:uppercase; font-family:'Share Tech Mono',monospace; margin:28px 0 10px; }
+  p { font-size:15px; color:var(--text); line-height:1.75; margin-bottom:12px; }
+  ul { padding-left:20px; margin-bottom:12px; }
+  li { font-size:15px; color:var(--text); line-height:1.75; margin-bottom:4px; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .divider { height:1px; background:var(--border); margin:32px 0; }
+  footer { margin-top:40px; padding-top:20px; border-top:1px solid var(--border); text-align:center; }
+  footer p { font-size:10px; letter-spacing:1px; color:var(--muted); font-family:'Share Tech Mono',monospace; line-height:1.8; }
+  footer a { color:var(--dim); text-decoration:none; transition:color .2s; }
+  footer a:hover { color:var(--accent); }
+  .sep { margin:0 8px; opacity:.4; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="logo" href="index.html">CODERAIDER</a>
+    <a class="back" href="index.html">← Back</a>
+  </div>
+
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: May 2026</p>
+
+  <p>CodeRaider ("we", "us", or "our") operates the website codeasehg.web.app. This policy explains what data is collected when you use the app, how it is used, and your rights regarding that data.</p>
+
+  <h2>Information We Collect</h2>
+  <p>We collect only what is necessary to operate the raid-sync feature:</p>
+  <ul>
+    <li><strong>Raider name</strong> — the display name you enter before joining a session. Stored locally in your browser and synced to your active session in Firebase.</li>
+    <li><strong>Room code</strong> — a session identifier used to group players together. Not linked to your identity.</li>
+    <li><strong>Steam ID</strong> — if you choose to sign in via Steam, your Steam64 ID is retrieved through Steam OpenID and stored in your browser's local storage. Sign-in is optional and only required for the "Test Your Code" feature.</li>
+    <li><strong>BattleMetrics target data</strong> — if you add player targets, the app queries the BattleMetrics API for online status using a BattleMetrics profile URL you provide. No personal data beyond the URL is stored by us.</li>
+  </ul>
+
+  <h2>How We Use Your Information</h2>
+  <ul>
+    <li>To sync code-cracking progress between raid members in real time.</li>
+    <li>To display your raider name and status to other members of the same session.</li>
+    <li>To check whether tracked targets are currently online in Rust (via BattleMetrics).</li>
+  </ul>
+  <p>We do not sell, rent, or share your data with any third party beyond the services listed below that are necessary to operate the app.</p>
+
+  <h2>Third-Party Services</h2>
+  <p>CodeRaider uses the following third-party services, each with their own privacy policies:</p>
+  <ul>
+    <li><strong>Firebase (Google)</strong> — real-time database used to sync session state. Data is stored on Google's servers. <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a></li>
+    <li><strong>Steam OpenID (Valve)</strong> — used for optional login. We receive only your Steam64 ID. <a href="https://store.steampowered.com/privacy_agreement/" target="_blank" rel="noopener">Steam Privacy Policy</a></li>
+    <li><strong>BattleMetrics</strong> — queried to check player online status. <a href="https://www.battlemetrics.com/privacy" target="_blank" rel="noopener">BattleMetrics Privacy Policy</a></li>
+  </ul>
+
+  <h2>Data Retention</h2>
+  <p>Session data in Firebase (raider name, codes tried, progress) is temporary and tied to an active session. We do not maintain long-term user profiles or logs. Data stored in your browser's local storage (raider name, Steam ID) remains until you clear it or sign out.</p>
+
+  <h2>Cookies</h2>
+  <p>CodeRaider does not use cookies. The app uses browser local storage only for session preferences.</p>
+
+  <h2>Children's Privacy</h2>
+  <p>CodeRaider is not directed at children under 13. We do not knowingly collect personal data from children.</p>
+
+  <h2>Your Rights</h2>
+  <p>You can clear your local data at any time by clearing your browser's local storage. If you have questions about data we may hold, contact us at the address below.</p>
+
+  <h2>Changes to This Policy</h2>
+  <p>We may update this policy periodically. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+  <h2>Contact</h2>
+  <p>For questions or concerns about this privacy policy, contact us at: <a href="mailto:jody602@gmail.com">jody602@gmail.com</a></p>
+
+  <div class="divider"></div>
+
+  <footer>
+    <p>© 2026 CodeRaider<span class="sep">|</span><a href="index.html">Home</a><span class="sep">|</span><a href="terms.html">Terms of Use</a></p>
+  </footer>
+</div>
+</body>
+</html>
