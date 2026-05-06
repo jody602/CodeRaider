@@ -171,6 +171,17 @@
   .targets-confirm-btn { height:36px; padding:0 14px; background:#001e26; border:1px solid var(--accent); color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:2px; cursor:pointer; transition:background .15s; flex-shrink:0; }
   .targets-confirm-btn:hover { background:#002d38; }
   .targets-empty { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:2px; }
+  .target-steam-link { font-size:9px; font-family:'Share Tech Mono',monospace; color:#6aaad4; letter-spacing:2px; text-decoration:none; flex-shrink:0; transition:color .15s; }
+  .target-steam-link:hover { color:#8bbfe8; }
+  .target-steam-add { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; flex-shrink:0; transition:color .15s; }
+  .target-steam-add:hover { color:var(--accent); }
+  .target-steam-row { display:none; gap:4px; padding:4px 10px 6px; background:var(--surface); border:1px solid var(--border); border-top:none; }
+  .target-steam-row.open { display:flex; }
+  .target-steam-inp { flex:1; height:28px; background:#0a1520; border:1px solid #1e2d3d; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:10px; padding:0 8px; outline:none; transition:border-color .15s; -webkit-user-select:text; user-select:text; }
+  .target-steam-inp:focus { border-color:#6aaad4; }
+  .target-steam-inp::placeholder { color:var(--dim); }
+  .target-steam-confirm { height:28px; padding:0 10px; background:none; border:1px solid #6aaad4; color:#6aaad4; font-family:'Share Tech Mono',monospace; font-size:11px; cursor:pointer; flex-shrink:0; transition:background .15s; }
+  .target-steam-confirm:hover { background:#0a1520; }
 
   @keyframes digitSlide { 0%{transform:translateY(-30px);opacity:0} 100%{transform:translateY(0);opacity:1} }
   .digit-anim { animation:digitSlide .2s ease; }
@@ -1198,10 +1209,11 @@ async function joinSession() {
       const newBmIds = [];
       for (const [bmId, t] of Object.entries(data)) {
         if (!targets[bmId]) {
-          targets[bmId] = { name: t.name, online: t.online ?? null, loading: true };
+          targets[bmId] = { name: t.name, online: t.online ?? null, loading: true, steamUrl: t.steamUrl || null };
           newBmIds.push(bmId);
         } else {
           targets[bmId].name = t.name;
+          if (t.steamUrl !== undefined) targets[bmId].steamUrl = t.steamUrl || null;
         }
       }
       for (const bmId of Object.keys(targets)) {
@@ -1610,11 +1622,19 @@ function renderTargets() {
     const dotCls = t.loading ? '' : (t.online ? 'online' : 'offline');
     const statusTxt = t.loading ? 'CHECKING' : (t.online ? 'ONLINE' : 'OFFLINE');
     const statusCls = t.loading ? '' : (t.online ? 'online' : 'offline');
+    const steamPart = t.steamUrl
+      ? `<a class="target-steam-link" href="${escapeHtml(t.steamUrl)}" target="_blank" rel="noopener">STEAM</a>`
+      : `<button class="target-steam-add" onclick="showSteamInput('${bmId}')">+ steam</button>`;
     return `<div class="target-row">
       <div class="target-dot ${dotCls}"></div>
       <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
+      ${steamPart}
       <span class="target-status ${statusCls}">${statusTxt}</span>
       <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
+    </div>
+    <div class="target-steam-row" id="tsi-${bmId}">
+      <input class="target-steam-inp" id="ts-${bmId}" placeholder="Steam URL, Steam64 ID, or vanity name" autocomplete="off" />
+      <button class="target-steam-confirm" onclick="confirmSteamLink('${bmId}')">✓</button>
     </div>`;
   }).join('');
 }
@@ -1640,6 +1660,41 @@ async function refreshTargetStatuses() {
   renderTargets();
 }
 
+// ── Steam link per target ────────────────────────────────────────────────────
+function parseSteamUrl(input) {
+  const s = input.trim();
+  const profile = s.match(/steamcommunity\.com\/profiles\/(\d+)/);
+  if (profile) return `https://steamcommunity.com/profiles/${profile[1]}`;
+  const vanity = s.match(/steamcommunity\.com\/id\/([^/?&\s]+)/);
+  if (vanity) return `https://steamcommunity.com/id/${vanity[1]}`;
+  if (/^7656119\d{10}$/.test(s)) return `https://steamcommunity.com/profiles/${s}`;
+  if (/^[a-zA-Z0-9_-]{2,32}$/.test(s)) return `https://steamcommunity.com/id/${s}`;
+  return null;
+}
+
+function showSteamInput(bmId) {
+  const row = document.getElementById(`tsi-${bmId}`);
+  if (!row) return;
+  const open = row.classList.toggle('open');
+  if (open) setTimeout(() => document.getElementById(`ts-${bmId}`)?.focus(), 50);
+}
+
+async function confirmSteamLink(bmId) {
+  const inp = document.getElementById(`ts-${bmId}`);
+  if (!inp || !targets[bmId]) return;
+  const steamUrl = parseSteamUrl(inp.value);
+  if (!steamUrl) { alert('Enter a Steam profile URL, Steam64 ID, or vanity name (e.g. steamcommunity.com/id/username)'); return; }
+  targets[bmId].steamUrl = steamUrl;
+  inp.value = '';
+  renderTargets();
+  if (firebaseReady && roomCode) {
+    try {
+      const { ref, update } = db.rtdb;
+      await update(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), { steamUrl });
+    } catch {}
+  }
+}
+
 // Expose for onclick handlers (module scope)
 window.joinSession = joinSession;
 window.nextCode    = nextCode;
@@ -1655,9 +1710,18 @@ window.analyzeCode   = analyzeCode;
 window.showAddTarget     = showAddTarget;
 window.confirmAddTarget  = confirmAddTarget;
 window.removeTarget      = removeTarget;
+window.showSteamInput    = showSteamInput;
+window.confirmSteamLink  = confirmSteamLink;
 
 $('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
 $('targets-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAddTarget(); });
+$('targets-list').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const inp = e.target.closest('.target-steam-inp');
+  if (!inp) return;
+  const bmId = inp.id.replace('ts-', '');
+  confirmSteamLink(bmId);
+});
 </script>
 
 </body>
