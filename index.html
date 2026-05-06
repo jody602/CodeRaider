@@ -1620,7 +1620,7 @@ function renderTargets() {
 }
 
 async function refreshTargetStatuses() {
-  const keys = Object.keys(targets).filter(id => !targets[id].loading);
+  const keys = Object.keys(targets);
   if (!keys.length) return;
   await Promise.all(keys.map(async (bmId) => {
     try {
