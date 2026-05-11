@@ -436,6 +436,7 @@
     <div class="found-display" id="found-display">
       <div class="found-display-label">✓ Code Found</div>
       <div class="found-display-code" id="found-display-code">----</div>
+      <div class="found-display-sub" id="found-display-sub"></div>
       <button class="found-display-exit" onclick="leaveSession()">EXIT SESSION</button>
     </div>
 
@@ -1187,7 +1188,26 @@ function confirmFoundCode() {
   if (!c1) { err.textContent = 'Enter the code'; $('found-input-1').focus(); return; }
   if (!c2) { err.textContent = 'Enter the code in both fields'; $('found-input-2').focus(); return; }
   if (c1 !== c2) { err.textContent = "Codes don't match"; $('found-input-2').focus(); $('found-input-2').select(); return; }
-  $('found-display-code').textContent = c1;
+  const foundData = { code: c1, by: myName || null, at: Date.now() };
+  applyFoundCode(foundData);
+  if (firebaseReady && roomCode) {
+    const { ref, set } = db.rtdb;
+    set(ref(db.database, `sessions/${sanitize(roomCode)}/foundCode`), foundData).catch(() => {});
+  }
+}
+
+function applyFoundCode(foundData) {
+  if (!foundData || !foundData.code) {
+    if ($('raid-screen').classList.contains('code-found')) resetFoundUI();
+    return;
+  }
+  $('found-display-code').textContent = foundData.code;
+  const sub = $('found-display-sub');
+  if (sub) {
+    const by = foundData.by ? `Found by ${foundData.by}` : 'Found';
+    const when = foundData.at ? ' · ' + formatRelativeTime(foundData.at) : '';
+    sub.textContent = by + when;
+  }
   $('raid-screen').classList.add('code-found');
 }
 
@@ -1406,6 +1426,7 @@ async function joinSession() {
       const data = snap.val() || {};
       renderRaiderList(data.raiders || {});
       updateTimeStats(data.totalTime || 0, data.nextGlobalIndex || 0, data.sessionStartTime);
+      applyFoundCode(data.foundCode);
     });
 
     refreshInterval = setInterval(async () => {
