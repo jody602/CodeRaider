@@ -160,6 +160,35 @@
   .key-hint { display:flex; gap:6px; align-items:center; justify-content:center; margin-top:-4px; flex-wrap:wrap; }
   .key-chip { padding:2px 8px; border:1px solid var(--border); background:var(--surface); font-size:9px; letter-spacing:2px; color:var(--muted); font-family:'Share Tech Mono',monospace; }
 
+  /* Found Code workflow */
+  .ctrl-btn.found { height:48px; background:#001a0d; border-color:var(--green); color:var(--green); font-size:12px; margin-top:6px; width:100%; }
+  .ctrl-btn.found:hover { background:#002a18; }
+  .ctrl-btn.found:active { background:#003828; }
+  .found-form { display:none; flex-direction:column; gap:10px; margin-top:8px; padding:14px; border:1px solid var(--border); background:var(--surface); }
+  .found-form .field-group { margin-bottom:0; }
+  .found-form .text-input { height:46px; font-size:20px; }
+  .found-form-actions { display:flex; gap:8px; }
+  .found-form-confirm { flex:1; height:44px; background:#001a0d; border:1px solid var(--green); color:var(--green); font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; letter-spacing:3px; text-transform:uppercase; cursor:pointer; transition:background .15s; }
+  .found-form-confirm:hover { background:#002a18; }
+  .found-form-cancel { height:44px; padding:0 16px; background:none; border:1px solid var(--border); color:var(--muted); font-family:'Rajdhani',sans-serif; font-size:11px; letter-spacing:2px; cursor:pointer; transition:color .15s,border-color .15s; }
+  .found-form-cancel:hover { border-color:var(--danger); color:var(--danger); }
+  .found-form-error { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--danger); letter-spacing:2px; min-height:13px; text-align:center; }
+  .found-display { display:none; flex-direction:column; align-items:center; gap:18px; padding:24px 0; }
+  .found-display-label { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:6px; color:var(--green); text-transform:uppercase; }
+  .found-display-code { font-family:'Share Tech Mono',monospace; font-size:56px; font-weight:700; color:var(--green); letter-spacing:8px; text-shadow:0 0 18px rgba(80,220,140,.45); }
+  .found-display-sub { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--muted); }
+  .found-display-exit { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Rajdhani',sans-serif; font-size:11px; letter-spacing:3px; padding:10px 24px; cursor:pointer; text-transform:uppercase; transition:color .15s,border-color .15s; }
+  .found-display-exit:hover { border-color:var(--danger); color:var(--danger); }
+  @media (min-width: 420px) { .found-display-code { font-size:68px; } }
+
+  /* When code is found, hide the live raiding UI */
+  #raid-screen.code-found .code-stage,
+  #raid-screen.code-found .controls,
+  #raid-screen.code-found #found-btn,
+  #raid-screen.code-found #found-form,
+  #raid-screen.code-found .key-hint { display:none !important; }
+  #raid-screen.code-found .found-display { display:flex !important; }
+
   /* Targets section */
   .targets-section { margin-top:12px; }
   .targets-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
@@ -380,9 +409,32 @@
       <button class="ctrl-btn primary" onclick="nextCode()">NEXT ▶</button>
       <button class="ctrl-btn leave" onclick="leaveSession()">EXIT</button>
     </div>
+    <button class="ctrl-btn found" id="found-btn" onclick="showFoundForm()">✓ FOUND CODE</button>
     <div class="key-hint">
       <span class="key-chip">→</span>
       <span style="font-size:9px;color:var(--muted);letter-spacing:2px;font-family:monospace">NEXT</span>
+    </div>
+
+    <div class="found-form" id="found-form">
+      <div class="field-group">
+        <label>Code</label>
+        <input class="text-input" id="found-input-1" type="text" maxlength="6" autocomplete="off" inputmode="numeric" />
+      </div>
+      <div class="field-group">
+        <label>Verify Code</label>
+        <input class="text-input" id="found-input-2" type="text" maxlength="6" autocomplete="off" inputmode="numeric" />
+      </div>
+      <span class="found-form-error" id="found-form-error"></span>
+      <div class="found-form-actions">
+        <button class="found-form-cancel" onclick="cancelFoundForm()">CANCEL</button>
+        <button class="found-form-confirm" onclick="confirmFoundCode()">▶ CONFIRM</button>
+      </div>
+    </div>
+
+    <div class="found-display" id="found-display">
+      <div class="found-display-label">✓ Code Found</div>
+      <div class="found-display-code" id="found-display-code">----</div>
+      <button class="found-display-exit" onclick="leaveSession()">EXIT SESSION</button>
     </div>
 
     <div class="targets-section">
@@ -1110,6 +1162,43 @@ function joinRoomFromList(code, name) {
   joinSession();
 }
 
+// ── Found Code workflow ──────────────────────────────────────────────────────
+function showFoundForm() {
+  $('found-btn').style.display = 'none';
+  $('found-form').style.display = 'flex';
+  $('found-form-error').textContent = '';
+  $('found-input-1').focus();
+}
+
+function cancelFoundForm() {
+  $('found-btn').style.display = '';
+  $('found-form').style.display = 'none';
+  $('found-input-1').value = '';
+  $('found-input-2').value = '';
+  $('found-form-error').textContent = '';
+}
+
+function confirmFoundCode() {
+  const c1 = $('found-input-1').value.trim();
+  const c2 = $('found-input-2').value.trim();
+  const err = $('found-form-error');
+  if (!c1) { err.textContent = 'Enter the code'; $('found-input-1').focus(); return; }
+  if (!c2) { err.textContent = 'Enter the code in both fields'; $('found-input-2').focus(); return; }
+  if (c1 !== c2) { err.textContent = "Codes don't match"; $('found-input-2').focus(); $('found-input-2').select(); return; }
+  $('found-display-code').textContent = c1;
+  $('raid-screen').classList.add('code-found');
+}
+
+function resetFoundUI() {
+  $('raid-screen').classList.remove('code-found');
+  $('found-btn').style.display = '';
+  $('found-form').style.display = 'none';
+  $('found-input-1').value = '';
+  $('found-input-2').value = '';
+  $('found-form-error').textContent = '';
+  $('found-display-code').textContent = '----';
+}
+
 async function removeMyRoom(rKey) {
   const steamId = localStorage.getItem('cr_steamId');
   if (!steamId || !firebaseReady || !rKey) return;
@@ -1508,6 +1597,7 @@ async function leaveSession() {
   myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
   $('recent-codes').innerHTML = '<span class="recent-empty">—</span>';
+  resetFoundUI();
   $('raid-screen').classList.remove('active');
   $('setup-screen').classList.add('active');
   $('ring-fg').style.strokeDashoffset = 175.9;
@@ -1832,8 +1922,13 @@ window.confirmAddTarget  = confirmAddTarget;
 window.removeTarget      = removeTarget;
 window.showSteamInput    = showSteamInput;
 window.confirmSteamLink  = confirmSteamLink;
+window.showFoundForm     = showFoundForm;
+window.cancelFoundForm   = cancelFoundForm;
+window.confirmFoundCode  = confirmFoundCode;
 
 $('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
+$('found-input-1').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('found-input-2').focus(); } });
+$('found-input-2').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); confirmFoundCode(); } });
 $('targets-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAddTarget(); });
 $('my-rooms-list').addEventListener('click', (e) => {
   const removeBtn = e.target.closest('.myroom-remove');
