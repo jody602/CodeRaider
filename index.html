@@ -179,6 +179,8 @@
   .found-display-sub { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--muted); }
   .found-display-exit { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Rajdhani',sans-serif; font-size:11px; letter-spacing:3px; padding:10px 24px; cursor:pointer; text-transform:uppercase; transition:color .15s,border-color .15s; }
   .found-display-exit:hover { border-color:var(--danger); color:var(--danger); }
+  .found-display-reset { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; cursor:pointer; padding:4px 12px; margin-top:-8px; text-transform:uppercase; transition:color .15s; }
+  .found-display-reset:hover { color:var(--danger); }
   @media (min-width: 420px) { .found-display-code { font-size:68px; } }
 
   /* When code is found, hide the live raiding UI */
@@ -438,6 +440,7 @@
       <div class="found-display-code" id="found-display-code">----</div>
       <div class="found-display-sub" id="found-display-sub"></div>
       <button class="found-display-exit" onclick="leaveSession()">EXIT SESSION</button>
+      <button class="found-display-reset" onclick="resetFoundCode()">reset · clear found code</button>
     </div>
 
     <div class="targets-section">
@@ -1211,6 +1214,21 @@ function applyFoundCode(foundData) {
   $('raid-screen').classList.add('code-found');
 }
 
+async function resetFoundCode() {
+  if (!confirm('Reset the found code for everyone in this room? This returns the session to the live raiding screen.')) return;
+  if (firebaseReady && roomCode) {
+    try {
+      const { ref, remove } = db.rtdb;
+      await remove(ref(db.database, `sessions/${sanitize(roomCode)}/foundCode`));
+    } catch (e) {
+      alert('Failed to reset: ' + (e.message || e));
+      return;
+    }
+  } else {
+    resetFoundUI();
+  }
+}
+
 function resetFoundUI() {
   $('raid-screen').classList.remove('code-found');
   $('found-btn').style.display = '';
@@ -1948,6 +1966,7 @@ window.confirmSteamLink  = confirmSteamLink;
 window.showFoundForm     = showFoundForm;
 window.cancelFoundForm   = cancelFoundForm;
 window.confirmFoundCode  = confirmFoundCode;
+window.resetFoundCode    = resetFoundCode;
 
 $('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
 $('found-input-1').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('found-input-2').focus(); } });
