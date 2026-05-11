@@ -1530,12 +1530,12 @@ function formatTime(seconds) {
 function updateTimeStats(totalTime, globalIdx, sessionStart) {
   const now = Date.now();
 
-  // Record entry when globalIdx changes or every 5 minutes (time marker for rate decay)
+  // Record entry when globalIdx changes or every 30s, so baseline tracks idle time
   const last = globalIdxHistory[globalIdxHistory.length - 1];
-  if (!last || last.idx !== globalIdx || now - last.time >= 300000) {
+  if (!last || last.idx !== globalIdx || now - last.time >= 30000) {
     globalIdxHistory.push({ time: now, idx: globalIdx });
-    // Prune entries older than 65 minutes
-    const cutoff = now - 3900000;
+    // Prune entries older than 6 minutes (just past the 5-min window)
+    const cutoff = now - 360000;
     while (globalIdxHistory.length > 1 && globalIdxHistory[0].time < cutoff) {
       globalIdxHistory.shift();
     }
@@ -1543,14 +1543,13 @@ function updateTimeStats(totalTime, globalIdx, sessionStart) {
 
   $('stat-total-time').textContent = formatTime(totalTime);
 
-  // Codes per hour: sliding window over the last hour (or full session if < 1 hr)
+  // Codes per hour: extrapolated from the last 5 minutes of activity to reflect current pace
   let cph = '0.0';
   if (globalIdxHistory.length >= 1) {
-    const oneHourAgo = now - 3600000;
-    // Find the last entry at or before the 1-hour mark (state at window start)
+    const fiveMinAgo = now - 300000;
     let baseline = null;
     for (let i = 0; i < globalIdxHistory.length; i++) {
-      if (globalIdxHistory[i].time <= oneHourAgo) baseline = globalIdxHistory[i];
+      if (globalIdxHistory[i].time <= fiveMinAgo) baseline = globalIdxHistory[i];
       else break;
     }
     baseline = baseline || globalIdxHistory[0];
