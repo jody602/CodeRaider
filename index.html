@@ -224,6 +224,11 @@
   .target-steam-add:hover { color:var(--accent); }
   .target-steam-row { display:none; gap:4px; padding:4px 10px 6px; background:var(--surface); border:1px solid var(--border); border-top:none; }
   .target-steam-row.open { display:flex; }
+  .target-server-row { display:flex; align-items:center; gap:6px; padding:3px 10px 6px; background:var(--surface); border:1px solid var(--border); border-top:none; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; }
+  .target-server-arrow { color:var(--muted); flex-shrink:0; }
+  .target-server-name { color:var(--accent2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; }
+  .target-server-link { color:var(--accent2); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; transition:color .15s; }
+  .target-server-link:hover { color:var(--accent); }
   .target-steam-inp { flex:1; height:28px; background:#0a1520; border:1px solid #1e2d3d; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:10px; padding:0 8px; outline:none; transition:border-color .15s; -webkit-user-select:text; user-select:text; }
   .target-steam-inp:focus { border-color:#6aaad4; }
   .target-steam-inp::placeholder { color:var(--dim); }
@@ -1460,11 +1465,14 @@ async function joinSession() {
       const newBmIds = [];
       for (const [bmId, t] of Object.entries(data)) {
         if (!targets[bmId]) {
-          targets[bmId] = { name: t.name, online: t.online ?? null, loading: true, steamUrl: t.steamUrl || null };
+          targets[bmId] = { name: t.name, online: t.online ?? null, loading: true, steamUrl: t.steamUrl || null, serverId: t.serverId || null, serverName: t.serverName || null };
           newBmIds.push(bmId);
         } else {
           targets[bmId].name = t.name;
           if (t.steamUrl !== undefined) targets[bmId].steamUrl = t.steamUrl || null;
+          if (t.serverId !== undefined) targets[bmId].serverId = t.serverId || null;
+          if (t.serverName !== undefined) targets[bmId].serverName = t.serverName || null;
+          if (t.online !== undefined) targets[bmId].online = t.online;
         }
       }
       for (const bmId of Object.keys(targets)) {
@@ -1482,9 +1490,9 @@ async function joinSession() {
             if (!res.ok) return;
             const d = await res.json();
             if (d.error) return;
-            targets[bmId] = { ...targets[bmId], online: d.online, loading: false };
+            targets[bmId] = { ...targets[bmId], online: d.online, loading: false, serverId: d.serverId || null, serverName: d.serverName || null };
             const { ref: r2, update: u2 } = db.rtdb;
-            await u2(r2(db.database, `sessions/${rKey}/targets/${bmId}`), { online: d.online, lastChecked: Date.now() });
+            await u2(r2(db.database, `sessions/${rKey}/targets/${bmId}`), { online: d.online, serverId: d.serverId || null, serverName: d.serverName || null, lastChecked: Date.now() });
           } catch {}
         }));
         renderTargets();
@@ -1834,11 +1842,11 @@ async function confirmAddTarget() {
     delete targets[tempKey];
     if (targets[bmId]) { renderTargets(); return; }
 
-    targets[bmId] = { name: data.name, online: data.online, loading: false };
+    targets[bmId] = { name: data.name, online: data.online, loading: false, serverId: data.serverId || null, serverName: data.serverName || null };
     if (firebaseReady && roomCode) {
       const { ref, set } = db.rtdb;
       await set(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
-        name: data.name, bmId, addedBy: myName, online: data.online, lastChecked: Date.now(),
+        name: data.name, bmId, addedBy: myName, online: data.online, serverId: data.serverId || null, serverName: data.serverName || null, lastChecked: Date.now(),
       });
     }
   } catch (e) {
@@ -1876,6 +1884,12 @@ function renderTargets() {
     const steamPart = t.steamUrl
       ? `<a class="target-steam-link" href="${escapeHtml(t.steamUrl)}" target="_blank" rel="noopener">STEAM</a>`
       : `<button class="target-steam-add" onclick="showSteamInput('${bmId}')">+ steam</button>`;
+    const serverRow = (t.online && t.serverName) ? `<div class="target-server-row">
+      <span class="target-server-arrow">▸</span>
+      ${t.serverId
+        ? `<a class="target-server-link" href="https://www.battlemetrics.com/servers/rust/${escapeHtml(t.serverId)}" target="_blank" rel="noopener">${escapeHtml(t.serverName)}</a>`
+        : `<span class="target-server-name">${escapeHtml(t.serverName)}</span>`}
+    </div>` : '';
     return `<div class="target-row">
       <div class="target-dot ${dotCls}"></div>
       <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
@@ -1883,6 +1897,7 @@ function renderTargets() {
       <span class="target-status ${statusCls}">${statusTxt}</span>
       <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
     </div>
+    ${serverRow}
     <div class="target-steam-row" id="tsi-${bmId}">
       <input class="target-steam-inp" id="ts-${bmId}" placeholder="Steam URL, Steam64 ID, or vanity name" autocomplete="off" />
       <button class="target-steam-confirm" onclick="confirmSteamLink('${bmId}')">✓</button>
@@ -1899,11 +1914,11 @@ async function refreshTargetStatuses() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.error) return;
-      targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false };
+      targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false, serverId: data.serverId || null, serverName: data.serverName || null };
       if (firebaseReady && roomCode) {
         const { ref, update } = db.rtdb;
         await update(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
-          online: data.online, lastChecked: Date.now(),
+          online: data.online, serverId: data.serverId || null, serverName: data.serverName || null, lastChecked: Date.now(),
         });
       }
     } catch {}

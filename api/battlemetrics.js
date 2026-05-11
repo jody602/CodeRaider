@@ -1,16 +1,27 @@
 async function getOnlineStatus(bmId, headers) {
   try {
     // only filter[players] is valid — check if any session has stop===null
+    // include=server pulls the server record into `included` so we can read its name
     const res = await fetch(
-      `https://api.battlemetrics.com/sessions?filter[players]=${bmId}`,
+      `https://api.battlemetrics.com/sessions?filter[players]=${bmId}&include=server&page[size]=10`,
       { headers }
     );
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch { return { online: false }; }
     if (!res.ok) return { online: false };
-    const online = Array.isArray(data.data) && data.data.some(s => s.attributes?.stop === null);
-    return { online };
+    if (!Array.isArray(data.data)) return { online: false };
+
+    const activeSession = data.data.find(s => s.attributes?.stop === null);
+    if (!activeSession) return { online: false };
+
+    const serverId = activeSession.relationships?.server?.data?.id || null;
+    let serverName = null;
+    if (serverId && Array.isArray(data.included)) {
+      const serverObj = data.included.find(i => i.type === 'server' && i.id === serverId);
+      serverName = serverObj?.attributes?.name || null;
+    }
+    return { online: true, serverId, serverName };
   } catch {
     return { online: false };
   }
@@ -51,8 +62,8 @@ module.exports = async function handler(req, res) {
       const player = searchData.data[0];
       const bmId = player.id;
       const name = player.attributes?.name || 'Unknown';
-      const { online } = await getOnlineStatus(bmId, headers);
-      return res.json({ id: bmId, name, online });
+      const { online, serverId, serverName } = await getOnlineStatus(bmId, headers);
+      return res.json({ id: bmId, name, online, serverId: serverId || null, serverName: serverName || null });
     }
 
     // BattleMetrics player ID lookup
@@ -69,9 +80,9 @@ module.exports = async function handler(req, res) {
 
     const playerData = await playerRes.json();
     const name = playerData.data?.attributes?.name || 'Unknown';
-    const { online } = await getOnlineStatus(id, headers);
+    const { online, serverId, serverName } = await getOnlineStatus(id, headers);
 
-    res.json({ id, name, online });
+    res.json({ id, name, online, serverId: serverId || null, serverName: serverName || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
