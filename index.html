@@ -118,6 +118,20 @@
   .steam-signout { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; }
   .steam-signout:hover { color:var(--danger); }
 
+  /* Your Rooms (Steam-linked rejoin list) */
+  .myrooms-section { width:100%; margin-bottom:16px; }
+  .myrooms-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .myrooms-label { font-size:9px; letter-spacing:3px; color:var(--muted); font-family:'Share Tech Mono',monospace; text-transform:uppercase; }
+  .myrooms-list { display:flex; flex-direction:column; gap:4px; }
+  .myroom-row { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); padding:8px 10px; cursor:pointer; transition:border-color .15s,background .15s; }
+  .myroom-row:hover { border-color:var(--accent); background:#001a22; }
+  .myroom-arrow { color:var(--accent); font-family:'Share Tech Mono',monospace; font-size:12px; flex-shrink:0; }
+  .myroom-code { font-family:'Share Tech Mono',monospace; font-size:13px; font-weight:700; color:var(--accent2); letter-spacing:2px; flex-shrink:0; }
+  .myroom-name { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:1px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .myroom-time { font-family:'Share Tech Mono',monospace; font-size:9px; color:var(--dim); letter-spacing:1px; flex-shrink:0; }
+  .myroom-remove { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:14px; cursor:pointer; padding:0 4px; line-height:1; flex-shrink:0; transition:color .15s; }
+  .myroom-remove:hover { color:var(--danger); }
+
   /* Test Your Code screen */
   #test-screen { justify-content:center; padding:24px 8px; gap:0; }
   .test-gate { display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px 0; }
@@ -246,6 +260,13 @@
     <h1 class="setup-heading">RAID SESSION</h1>
 
     <div class="steam-section" id="steam-section"></div>
+
+    <div class="myrooms-section" id="my-rooms-section" style="display:none;">
+      <div class="myrooms-header">
+        <span class="myrooms-label">Your Rooms</span>
+      </div>
+      <div class="myrooms-list" id="my-rooms-list"></div>
+    </div>
 
     <div id="firebase-warn">
       <strong>⚠ Sync not configured</strong><br>
@@ -1010,9 +1031,92 @@ function updateSteamSection() {
   const steamId = localStorage.getItem('cr_steamId');
   if (steamId) {
     section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">CONNECTED</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
-  } else if (steamCallbackUrl) {
-    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
+    startMyRoomsListener();
+  } else {
+    if (steamCallbackUrl) {
+      section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
+    }
+    stopMyRoomsListener();
   }
+}
+
+// ── Your Rooms (Steam-linked rejoin list) ────────────────────────────────────
+function startMyRoomsListener() {
+  const steamId = localStorage.getItem('cr_steamId');
+  if (!steamId || !firebaseReady) { stopMyRoomsListener(); return; }
+  if (myRoomsListener) myRoomsListener();
+  const { ref, onValue } = db.rtdb;
+  myRoomsListener = onValue(ref(db.database, `userRooms/${steamId}`), (snap) => {
+    renderMyRooms(snap.val() || {});
+  });
+}
+
+function stopMyRoomsListener() {
+  if (myRoomsListener) { myRoomsListener(); myRoomsListener = null; }
+  const section = $('my-rooms-section');
+  const list = $('my-rooms-list');
+  if (section) section.style.display = 'none';
+  if (list) list.innerHTML = '';
+}
+
+function renderMyRooms(data) {
+  const section = $('my-rooms-section');
+  const list = $('my-rooms-list');
+  if (!section || !list) return;
+  const entries = Object.entries(data || {})
+    .filter(([, v]) => v && v.roomCode)
+    .map(([rKey, v]) => ({ rKey, ...v }))
+    .sort((a, b) => (b.lastJoined || 0) - (a.lastJoined || 0))
+    .slice(0, 10);
+  if (entries.length === 0) { section.style.display = 'none'; list.innerHTML = ''; return; }
+  section.style.display = '';
+  list.innerHTML = entries.map(e => {
+    const code = escapeHtml(e.roomCode);
+    const name = escapeHtml(e.name || '');
+    const rel = escapeHtml(formatRelativeTime(e.lastJoined));
+    const rKey = escapeHtml(e.rKey);
+    return `<div class="myroom-row" role="button" tabindex="0" data-room="${code}" data-name="${name}">`
+      + `<span class="myroom-arrow">▸</span>`
+      + `<span class="myroom-code">${code}</span>`
+      + `<span class="myroom-name">${name}</span>`
+      + `<span class="myroom-time">${rel}</span>`
+      + `<button class="myroom-remove" data-rkey="${rKey}" aria-label="Remove">×</button>`
+      + `</div>`;
+  }).join('');
+}
+
+function formatRelativeTime(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + 'd ago';
+  const w = Math.floor(d / 7);
+  if (w < 4) return w + 'w ago';
+  const mo = Math.floor(d / 30);
+  return mo + 'mo ago';
+}
+
+function joinRoomFromList(code, name) {
+  if (!code) return;
+  $('room-input').value = code;
+  $('name-input').value = name || localStorage.getItem('cr_lastName') || '';
+  updateBanner();
+  if (!$('name-input').value) { $('name-input').focus(); return; }
+  joinSession();
+}
+
+async function removeMyRoom(rKey) {
+  const steamId = localStorage.getItem('cr_steamId');
+  if (!steamId || !firebaseReady || !rKey) return;
+  try {
+    const { ref, remove } = db.rtdb;
+    await remove(ref(db.database, `userRooms/${steamId}/${rKey}`));
+  } catch {}
 }
 
 function setStatus(live) {
@@ -1030,6 +1134,7 @@ let lastClickTime = 0;  // rate-limit: 1 action per second
 let sessionListener = null;
 let presenceListener = null;
 let targetsListener = null;
+let myRoomsListener = null;
 let refreshInterval = null;
 let totalTimeInterval = null;
 let targetsInterval = null;
@@ -1177,6 +1282,13 @@ async function joinSession() {
       await update(meRef, { name: myName, online: true, ...(mySteamId && { steamId: mySteamId }) });
     } else {
       await set(meRef, { name: myName, online: true, joinedAt: Date.now(), ...(mySteamId && { steamId: mySteamId }) });
+    }
+    if (mySteamId) {
+      set(ref(db.database, `userRooms/${mySteamId}/${rKey}`), {
+        roomCode: roomCode,
+        name: myName,
+        lastJoined: Date.now()
+      }).catch(() => {});
     }
     // Re-establish presence on every (re)connect so network hiccups don't leave stale offline status
     const connectedRef = ref(db.database, '.info/connected');
@@ -1724,6 +1836,17 @@ window.confirmSteamLink  = confirmSteamLink;
 
 $('test-input').addEventListener('keydown', e => { if (e.key === 'Enter') analyzeCode(); });
 $('targets-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') confirmAddTarget(); });
+$('my-rooms-list').addEventListener('click', (e) => {
+  const removeBtn = e.target.closest('.myroom-remove');
+  if (removeBtn) { e.stopPropagation(); removeMyRoom(removeBtn.dataset.rkey); return; }
+  const row = e.target.closest('.myroom-row');
+  if (row) joinRoomFromList(row.dataset.room, row.dataset.name);
+});
+$('my-rooms-list').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('.myroom-row');
+  if (row) { e.preventDefault(); joinRoomFromList(row.dataset.room, row.dataset.name); }
+});
 $('targets-list').addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
   const inp = e.target.closest('.target-steam-inp');
