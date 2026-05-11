@@ -224,12 +224,14 @@
   .target-steam-add:hover { color:var(--accent); }
   .target-steam-row { display:none; gap:4px; padding:4px 10px 6px; background:var(--surface); border:1px solid var(--border); border-top:none; }
   .target-steam-row.open { display:flex; }
-  .target-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
-  .target-info .target-name { flex:initial; max-width:100%; }
-  .target-server-inline { display:block; max-width:100%; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--accent2); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:color .15s; }
-  .target-server-inline:hover { color:var(--accent); }
-  .target-server-arrow { color:var(--muted); margin-right:4px; }
-  .target-group-sep { height:1px; background:var(--border); margin:4px 0; opacity:0.6; }
+  .target-group-header { padding:10px 0 4px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; display:flex; align-items:center; gap:6px; color:var(--muted); }
+  .target-group-header:first-child { padding-top:0; }
+  .target-group-header-icon { color:var(--muted); flex-shrink:0; }
+  .target-group-header-text { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); text-decoration:none; }
+  .target-group-header-text.server { color:var(--accent2); }
+  .target-group-header-text.offline { color:var(--dim); }
+  a.target-group-header-text { transition:color .15s; }
+  a.target-group-header-text:hover { color:var(--accent); }
   .target-steam-inp { flex:1; height:28px; background:#0a1520; border:1px solid #1e2d3d; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:10px; padding:0 8px; outline:none; transition:border-color .15s; -webkit-user-select:text; user-select:text; }
   .target-steam-inp:focus { border-color:#6aaad4; }
   .target-steam-inp::placeholder { color:var(--dim); }
@@ -1904,6 +1906,27 @@ function sortedTargetIds() {
   return [...groupArrays.flat(), ...onlineNoServer, ...offline];
 }
 
+function renderTargetGroupHeader(groupKey, sample) {
+  if (groupKey.startsWith('S:')) {
+    const serverId = groupKey.slice(2);
+    const name = sample?.serverName || 'Server';
+    return `<div class="target-group-header">`
+      + `<span class="target-group-header-icon">▸</span>`
+      + `<a class="target-group-header-text server" href="https://www.battlemetrics.com/servers/rust/${escapeHtml(serverId)}" target="_blank" rel="noopener">${escapeHtml(name)}</a>`
+      + `</div>`;
+  }
+  if (groupKey === 'ONLINE_UNK') {
+    return `<div class="target-group-header">`
+      + `<span class="target-group-header-icon">▸</span>`
+      + `<span class="target-group-header-text">Online</span>`
+      + `</div>`;
+  }
+  return `<div class="target-group-header">`
+    + `<span class="target-group-header-icon">▸</span>`
+    + `<span class="target-group-header-text offline">Offline</span>`
+    + `</div>`;
+}
+
 function targetGroupKey(id) {
   const t = targets[id];
   if (t.online && t.serverId) return 'S:' + t.serverId;
@@ -1920,7 +1943,7 @@ function renderTargets() {
   list.innerHTML = keys.map(bmId => {
     const t = targets[bmId];
     const g = targetGroupKey(bmId);
-    const sep = (lastGroup !== null && g !== lastGroup) ? '<div class="target-group-sep"></div>' : '';
+    const header = (g !== lastGroup) ? renderTargetGroupHeader(g, t) : '';
     lastGroup = g;
     const dotCls = t.loading ? '' : (t.online ? 'online' : 'offline');
     const statusTxt = t.loading ? 'CHECKING' : (t.online ? 'ONLINE' : 'OFFLINE');
@@ -1928,17 +1951,9 @@ function renderTargets() {
     const steamPart = t.steamUrl
       ? `<a class="target-steam-link" href="${escapeHtml(t.steamUrl)}" target="_blank" rel="noopener">STEAM</a>`
       : `<button class="target-steam-add" onclick="showSteamInput('${bmId}')">+ steam</button>`;
-    const serverInline = (t.online && t.serverName)
-      ? (t.serverId
-          ? `<a class="target-server-inline" href="https://www.battlemetrics.com/servers/rust/${escapeHtml(t.serverId)}" target="_blank" rel="noopener"><span class="target-server-arrow">▸</span>${escapeHtml(t.serverName)}</a>`
-          : `<span class="target-server-inline"><span class="target-server-arrow">▸</span>${escapeHtml(t.serverName)}</span>`)
-      : '';
-    return sep + `<div class="target-row">
+    return header + `<div class="target-row">
       <div class="target-dot ${dotCls}"></div>
-      <div class="target-info">
-        <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
-        ${serverInline}
-      </div>
+      <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
       ${steamPart}
       <span class="target-status ${statusCls}">${statusTxt}</span>
       <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
