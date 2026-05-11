@@ -224,6 +224,20 @@
   .target-steam-add:hover { color:var(--accent); }
   .target-steam-row { display:none; gap:4px; padding:4px 10px 6px; background:var(--surface); border:1px solid var(--border); border-top:none; }
   .target-steam-row.open { display:flex; }
+  .target-info-btn { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:13px; cursor:pointer; padding:0 4px; line-height:1; flex-shrink:0; transition:color .15s; }
+  .target-info-btn:hover { color:var(--accent); }
+  .target-info-btn.open { color:var(--accent); }
+  .target-summary-row { display:none; padding:10px 12px; background:#0a141a; border:1px solid var(--border); border-top:none; flex-direction:column; gap:10px; font-family:'Share Tech Mono',monospace; font-size:10px; }
+  .target-summary-row.open { display:flex; }
+  .target-summary-section { display:flex; flex-direction:column; gap:3px; }
+  .target-summary-heading { display:flex; align-items:baseline; gap:8px; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); padding-bottom:2px; border-bottom:1px solid var(--border); }
+  .target-summary-heading .total { color:var(--accent2); font-size:9px; letter-spacing:1px; margin-left:auto; flex-shrink:0; }
+  .target-summary-label { font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; padding-bottom:2px; border-bottom:1px solid var(--border); }
+  .target-summary-item { display:flex; justify-content:space-between; gap:8px; align-items:baseline; padding:1px 0; }
+  .target-summary-item-name { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; }
+  .target-summary-item-val { color:var(--accent2); flex-shrink:0; font-size:9px; letter-spacing:1px; }
+  .target-summary-empty { color:var(--dim); font-style:italic; text-align:center; padding:4px 0; }
+  .target-summary-loading { color:var(--dim); text-align:center; padding:8px 0; letter-spacing:2px; }
   .target-group-header { padding:10px 0 4px; font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; display:flex; align-items:center; gap:6px; color:var(--muted); }
   .target-group-header:first-child { padding-top:0; }
   .target-group-header-icon { color:var(--muted); flex-shrink:0; }
@@ -1956,13 +1970,80 @@ function renderTargets() {
       <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
       ${steamPart}
       <span class="target-status ${statusCls}">${statusTxt}</span>
+      <button class="target-info-btn" id="tsumBtn-${bmId}" onclick="toggleTargetSummary('${bmId}')" title="Playtime, past names, top servers">ⓘ</button>
       <button class="target-remove" onclick="removeTarget('${escapeHtml(bmId)}')">✕</button>
     </div>
+    <div class="target-summary-row" id="tsum-${bmId}"></div>
     <div class="target-steam-row" id="tsi-${bmId}">
       <input class="target-steam-inp" id="ts-${bmId}" placeholder="Steam URL, Steam64 ID, or vanity name" autocomplete="off" />
       <button class="target-steam-confirm" onclick="confirmSteamLink('${bmId}')">✓</button>
     </div>`;
   }).join('');
+}
+
+async function toggleTargetSummary(bmId) {
+  const row = document.getElementById('tsum-' + bmId);
+  const btn = document.getElementById('tsumBtn-' + bmId);
+  if (!row || !btn || !targets[bmId]) return;
+  const isOpen = row.classList.contains('open');
+  if (isOpen) {
+    row.classList.remove('open');
+    btn.classList.remove('open');
+    return;
+  }
+  row.classList.add('open');
+  btn.classList.add('open');
+  if (targets[bmId].summary) {
+    row.innerHTML = renderTargetSummaryHtml(targets[bmId].summary);
+    return;
+  }
+  if (targets[bmId].summaryLoading) return;
+  targets[bmId].summaryLoading = true;
+  row.innerHTML = '<div class="target-summary-loading">Loading…</div>';
+  try {
+    const r = await fetch(`${bmApiBase}/api/battlemetrics-summary?id=${bmId}`);
+    const data = await r.json();
+    if (!r.ok || data.error) throw new Error(data.error || ('HTTP ' + r.status));
+    targets[bmId].summary = data;
+    if (row.classList.contains('open')) row.innerHTML = renderTargetSummaryHtml(data);
+  } catch (e) {
+    row.innerHTML = `<div class="target-summary-loading">Failed: ${escapeHtml(e.message || 'unknown error')}</div>`;
+  } finally {
+    targets[bmId].summaryLoading = false;
+  }
+}
+
+function formatHours(h) {
+  if (!h && h !== 0) return '0h';
+  if (h >= 1000) return Math.round(h).toLocaleString() + 'h';
+  if (h >= 10) return h.toFixed(0) + 'h';
+  return h.toFixed(1) + 'h';
+}
+
+function renderTargetSummaryHtml(s) {
+  const past = Array.isArray(s.pastNames) ? s.pastNames : [];
+  const games = Array.isArray(s.games) ? s.games : [];
+  let html = '';
+  if (past.length > 1) {
+    html += '<div class="target-summary-section"><span class="target-summary-label">Past Names</span>';
+    past.slice(0, 10).forEach(n => {
+      const year = n.lastSeen ? new Date(n.lastSeen).getFullYear() : '';
+      html += `<div class="target-summary-item"><span class="target-summary-item-name">${escapeHtml(n.name)}</span><span class="target-summary-item-val">${escapeHtml(String(year))}</span></div>`;
+    });
+    html += '</div>';
+  }
+  games.forEach(g => {
+    html += `<div class="target-summary-section">`
+      + `<div class="target-summary-heading">${escapeHtml(g.label)}<span class="total">${formatHours(g.totalHours)}</span></div>`;
+    (g.servers || []).slice(0, 5).forEach(srv => {
+      html += `<div class="target-summary-item"><span class="target-summary-item-name">${escapeHtml(srv.name)}</span><span class="target-summary-item-val">${formatHours(srv.hours)}</span></div>`;
+    });
+    html += '</div>';
+  });
+  if (!games.length && past.length <= 1) {
+    html += '<div class="target-summary-empty">No playtime data available</div>';
+  }
+  return html;
 }
 
 async function refreshTargetStatuses() {
@@ -2038,6 +2119,7 @@ window.confirmAddTarget  = confirmAddTarget;
 window.removeTarget      = removeTarget;
 window.showSteamInput    = showSteamInput;
 window.confirmSteamLink  = confirmSteamLink;
+window.toggleTargetSummary = toggleTargetSummary;
 window.showFoundForm     = showFoundForm;
 window.cancelFoundForm   = cancelFoundForm;
 window.confirmFoundCode  = confirmFoundCode;
