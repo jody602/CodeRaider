@@ -229,6 +229,7 @@
   .target-server-inline { display:block; max-width:100%; font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--accent2); text-decoration:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; transition:color .15s; }
   .target-server-inline:hover { color:var(--accent); }
   .target-server-arrow { color:var(--muted); margin-right:4px; }
+  .target-group-sep { height:1px; background:var(--border); margin:4px 0; opacity:0.6; }
   .target-steam-inp { flex:1; height:28px; background:#0a1520; border:1px solid #1e2d3d; color:var(--text); font-family:'Share Tech Mono',monospace; font-size:10px; padding:0 8px; outline:none; transition:border-color .15s; -webkit-user-select:text; user-select:text; }
   .target-steam-inp:focus { border-color:#6aaad4; }
   .target-steam-inp::placeholder { color:var(--dim); }
@@ -1871,13 +1872,56 @@ async function removeTarget(bmId) {
   }
 }
 
+function sortedTargetIds() {
+  const ids = Object.keys(targets);
+  const serverGroups = new Map();
+  const onlineNoServer = [];
+  const offline = [];
+  for (const id of ids) {
+    const t = targets[id];
+    if (t.online && t.serverId) {
+      if (!serverGroups.has(t.serverId)) serverGroups.set(t.serverId, []);
+      serverGroups.get(t.serverId).push(id);
+    } else if (t.online || t.loading) {
+      onlineNoServer.push(id);
+    } else {
+      offline.push(id);
+    }
+  }
+  const byName = (a, b) => (targets[a].name || '').localeCompare(targets[b].name || '');
+  for (const list of serverGroups.values()) list.sort(byName);
+  const groupArrays = [...serverGroups.entries()]
+    .sort((a, b) => {
+      const sizeDiff = b[1].length - a[1].length;
+      if (sizeDiff !== 0) return sizeDiff;
+      const nameA = targets[a[1][0]]?.serverName || '';
+      const nameB = targets[b[1][0]]?.serverName || '';
+      return nameA.localeCompare(nameB);
+    })
+    .map(([, list]) => list);
+  onlineNoServer.sort(byName);
+  offline.sort(byName);
+  return [...groupArrays.flat(), ...onlineNoServer, ...offline];
+}
+
+function targetGroupKey(id) {
+  const t = targets[id];
+  if (t.online && t.serverId) return 'S:' + t.serverId;
+  if (t.online || t.loading) return 'ONLINE_UNK';
+  return 'OFFLINE';
+}
+
 function renderTargets() {
   const list = $('targets-list');
   if (!list) return;
-  const keys = Object.keys(targets);
+  const keys = sortedTargetIds();
   if (!keys.length) { list.innerHTML = '<span class="targets-empty">—</span>'; return; }
+  let lastGroup = null;
   list.innerHTML = keys.map(bmId => {
     const t = targets[bmId];
+    const g = targetGroupKey(bmId);
+    const sep = (lastGroup !== null && g !== lastGroup) ? '<div class="target-group-sep"></div>' : '';
+    lastGroup = g;
     const dotCls = t.loading ? '' : (t.online ? 'online' : 'offline');
     const statusTxt = t.loading ? 'CHECKING' : (t.online ? 'ONLINE' : 'OFFLINE');
     const statusCls = t.loading ? '' : (t.online ? 'online' : 'offline');
@@ -1889,7 +1933,7 @@ function renderTargets() {
           ? `<a class="target-server-inline" href="https://www.battlemetrics.com/servers/rust/${escapeHtml(t.serverId)}" target="_blank" rel="noopener"><span class="target-server-arrow">▸</span>${escapeHtml(t.serverName)}</a>`
           : `<span class="target-server-inline"><span class="target-server-arrow">▸</span>${escapeHtml(t.serverName)}</span>`)
       : '';
-    return `<div class="target-row">
+    return sep + `<div class="target-row">
       <div class="target-dot ${dotCls}"></div>
       <div class="target-info">
         <a class="target-name" href="https://www.battlemetrics.com/players/${bmId}" target="_blank" rel="noopener">${escapeHtml(t.name)}</a>
