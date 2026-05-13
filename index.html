@@ -4,7 +4,32 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#080b0f" />
-<title>CodeRaider</title>
+<title>CodeRaider — Crack Rust code locks faster, together</title>
+<meta name="description" content="CodeRaider splits the 10,000 possible Rust code-lock PINs across your raid group, ordered by what real players actually use. Sign in with Steam, share a room code, crack faster." />
+<meta name="keywords" content="rust code lock, rust raid, rust code raider, coderaider, code lock raid, rust pin cracker, rust base raid, code lock calculator" />
+<link rel="canonical" href="https://coderaid.win/" />
+<meta name="robots" content="index, follow" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://coderaid.win/" />
+<meta property="og:title" content="CodeRaider — Crack Rust code locks faster, together" />
+<meta property="og:description" content="Coordinated code-lock raiding for Rust. Splits all 10,000 PINs across your raid group, ordered by real-player frequency." />
+<meta property="og:site_name" content="CodeRaider" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="CodeRaider — Crack Rust code locks faster, together" />
+<meta name="twitter:description" content="Coordinated code-lock raiding for Rust. Splits all 10,000 PINs across your raid group, ordered by real-player frequency." />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "CodeRaider",
+  "url": "https://coderaid.win/",
+  "description": "Coordinated code-lock raiding for Rust. Splits all 10,000 possible code-lock PINs across your raid group, ordered by what real players actually use.",
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript and modern browser.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -119,9 +144,38 @@
   .steam-signout { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; }
   .steam-signout:hover { color:var(--danger); }
 
-  /* Auth gate (signed out) */
-  .auth-gate { width:100%; padding:24px 16px; margin-bottom:16px; background:#0e1318; border:1px solid var(--border); text-align:center; font-family:'Share Tech Mono',monospace; font-size:11px; line-height:1.8; color:var(--muted); letter-spacing:1px; }
-  .auth-gate strong { color:var(--accent); }
+  /* Landing page (signed-out hero + content) */
+  .landing { width:100%; margin-bottom:8px; }
+  .landing-hero { padding:24px 0 28px; text-align:center; }
+  .landing-eyebrow { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:5px; color:var(--accent2); text-transform:uppercase; margin-bottom:14px; }
+  .landing-h1 { font-size:30px; font-weight:700; color:var(--accent); letter-spacing:1px; line-height:1.15; margin-bottom:14px; }
+  .landing-h1 span { color:var(--text); }
+  .landing-tagline { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--muted); line-height:1.8; letter-spacing:1px; max-width:480px; margin:0 auto 22px; }
+  .landing-cta { width:100%; height:60px; background:var(--accent); color:#000; border:none; cursor:pointer; font-family:'Rajdhani',sans-serif; font-size:17px; font-weight:700; letter-spacing:4px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:10px; transition:opacity .15s,box-shadow .2s; box-shadow:0 0 0 transparent; }
+  .landing-cta:hover { opacity:.92; box-shadow:0 0 26px rgba(0,229,255,.35); }
+  .landing-cta:active { opacity:.75; }
+  .landing-cta svg { flex-shrink:0; }
+  .landing-cta-note { margin-top:10px; font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:2px; text-align:center; }
+
+  .landing-section { padding:28px 0; border-top:1px solid var(--border); }
+  .landing-section h2 { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:5px; color:var(--accent2); text-transform:uppercase; margin-bottom:14px; }
+  .landing-section p { font-family:'Share Tech Mono',monospace; font-size:12px; color:var(--text); line-height:1.85; margin-bottom:12px; }
+  .landing-section p strong { color:var(--accent2); }
+  .landing-section p em { color:var(--green); font-style:normal; }
+  .landing-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); border:1px solid var(--border); margin-top:14px; }
+  .landing-stat { background:var(--surface); padding:14px 12px; display:flex; flex-direction:column; gap:4px; }
+  .landing-stat-label { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+  .landing-stat-val { font-family:'Share Tech Mono',monospace; font-size:18px; font-weight:700; color:var(--accent); }
+  .landing-stat-val.green { color:var(--green); }
+
+  .landing-steps { display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .landing-step { display:flex; gap:14px; padding:14px; background:var(--surface); border:1px solid var(--border); }
+  .landing-step-num { font-family:'Share Tech Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); flex-shrink:0; min-width:30px; }
+  .landing-step-body { flex:1; }
+  .landing-step-title { font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:3px; color:var(--accent2); text-transform:uppercase; margin-bottom:4px; }
+  .landing-step-body p { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--text); line-height:1.7; margin:0; }
+
+  .landing-foot-cta { padding:24px 0 8px; }
 
   /* Username chooser */
   .username-chooser { width:100%; }
@@ -326,10 +380,60 @@
 
     <div class="steam-section" id="steam-section"></div>
 
-    <div class="auth-gate" id="auth-gate">
-      <strong>SIGN IN REQUIRED</strong><br>
-      Sign in with Steam above to use CodeRaider.<br>
-      You'll pick a username after signing in.
+    <div class="landing" id="auth-gate">
+      <header class="landing-hero">
+        <p class="landing-eyebrow">Rust · Code Lock Raid</p>
+        <h1 class="landing-h1">Crack code locks <span>faster, together.</span></h1>
+        <p class="landing-tagline">
+          CodeRaider splits the 10,000 possible PINs across your raid group, ordered by what real players actually use. Sign in, share a room code, crack faster.
+        </p>
+        <button class="landing-cta" id="landing-cta-top" type="button">
+          <span id="landing-cta-icon-top"></span> Sign in with Steam
+        </button>
+        <p class="landing-cta-note">Free · No download · Phone, tablet, desktop</p>
+      </header>
+
+      <section class="landing-section">
+        <h2>Why it works</h2>
+        <p>Players don't pick random codes. They pick <em>1234</em>. Or their birthday. Or <em>0000</em> because they're in a hurry. CodeRaider runs through PINs in the order real players actually use them — <strong>most likely first</strong>.</p>
+        <div class="landing-stats">
+          <div class="landing-stat"><span class="landing-stat-label">1,000 tries</span><span class="landing-stat-val">~2 in 3</span></div>
+          <div class="landing-stat"><span class="landing-stat-label">5,000 tries</span><span class="landing-stat-val green">~9 in 10</span></div>
+        </div>
+      </section>
+
+      <section class="landing-section">
+        <h2>How it works</h2>
+        <div class="landing-steps">
+          <div class="landing-step">
+            <div class="landing-step-num">01</div>
+            <div class="landing-step-body">
+              <div class="landing-step-title">Sign in with Steam</div>
+              <p>One click. Pick a username. You'll be able to see your room history any time you come back.</p>
+            </div>
+          </div>
+          <div class="landing-step">
+            <div class="landing-step-num">02</div>
+            <div class="landing-step-body">
+              <div class="landing-step-title">Share a room code</div>
+              <p>Everyone in the same room gets unique PINs to try, in order. No duplicates, no wasted tries.</p>
+            </div>
+          </div>
+          <div class="landing-step">
+            <div class="landing-step-num">03</div>
+            <div class="landing-step-body">
+              <div class="landing-step-title">Crack faster, together</div>
+              <p>Coverage scales with raiders. 4 people working a lock = roughly 4× faster than going solo.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="landing-foot-cta">
+        <button class="landing-cta" id="landing-cta-bottom" type="button">
+          <span id="landing-cta-icon-bottom"></span> Sign in with Steam
+        </button>
+      </div>
     </div>
 
     <div class="username-chooser" id="username-chooser" style="display:none;">
@@ -1132,12 +1236,19 @@ async function updateAuthUI() {
   const steamId = localStorage.getItem('cr_steamId');
 
   if (!steamId) {
-    if (section) section.innerHTML = steamCallbackUrl
-      ? `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`
-      : '';
+    // Top of page: hide the small steam pill — the landing has its own big CTAs
+    if (section) section.innerHTML = '';
     gate && (gate.style.display = '');
     chooser && (chooser.style.display = 'none');
     join && (join.style.display = 'none');
+    const topIcon = $('landing-cta-icon-top');
+    const botIcon = $('landing-cta-icon-bottom');
+    if (topIcon) topIcon.innerHTML = STEAM_ICON;
+    if (botIcon) botIcon.innerHTML = STEAM_ICON;
+    const topCta = $('landing-cta-top');
+    const botCta = $('landing-cta-bottom');
+    if (topCta) topCta.onclick = steamSignIn;
+    if (botCta) botCta.onclick = steamSignIn;
     stopMyRoomsListener();
     return;
   }
