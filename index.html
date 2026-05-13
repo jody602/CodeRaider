@@ -395,10 +395,10 @@
 
       <section class="landing-section">
         <h2>Why it works</h2>
-        <p>Players don't pick random codes. They pick <em>1234</em>. Or their birthday. Or <em>0000</em> because they're in a hurry. CodeRaider runs through PINs in the order real players actually use them — <strong>most likely first</strong>.</p>
+        <p>In real life, easy PINs like <em>1234</em> work because the code is just <strong>one layer</strong> of security — you also need physical access. In Rust, the code <strong>is</strong> the only layer, so players pick harder ones. But they're still human: they reach for memorable patterns like years, repeats, and keyboard walks. CodeRaider checks those first.</p>
         <div class="landing-stats">
-          <div class="landing-stat"><span class="landing-stat-label">1,000 tries</span><span class="landing-stat-val">~2 in 3</span></div>
-          <div class="landing-stat"><span class="landing-stat-label">5,000 tries</span><span class="landing-stat-val green">~9 in 10</span></div>
+          <div class="landing-stat"><span class="landing-stat-label">1,000 tries</span><span class="landing-stat-val">~2 in 5</span></div>
+          <div class="landing-stat"><span class="landing-stat-label">5,000 tries</span><span class="landing-stat-val green">~3 in 4</span></div>
         </div>
       </section>
 
@@ -614,17 +614,21 @@
     <div class="info-content">
       <h2>Why raiding code locks works</h2>
       <p>
-        If players picked their code lock PINs at random, you'd have a 1-in-10,000 shot each guess —
+        If Rust players picked PINs at random, you'd have a 1-in-10,000 shot each guess —
         you'd need around <strong>5,000 tries</strong> just to hit a 50/50 chance. Not great.
       </p>
       <p>
-        But <strong>players don't pick random codes.</strong> They pick <em>1234</em>. Or their birthday.
-        Or <em>0000</em> because they're in a hurry. That's exactly what CodeRaider exploits —
-        it runs through codes in order of how commonly real players use them, most likely first.
+        But <strong>players aren't random.</strong> In real life, weak PINs like <em>1234</em>
+        or birthdays work because the code is just one layer of security — you still need
+        physical access. In Rust, the code <strong>is</strong> the security, so players try
+        harder. The gap closes, but it doesn't disappear: humans still reach for memorable
+        patterns like years, repeats, and keyboard walks. CodeRaider runs through PINs in
+        roughly that order — most-memorable first.
       </p>
       <p>
-        The list is sorted by real-world PIN frequency data. You're not guessing blind —
-        you're working the odds. Here's roughly what that looks like:
+        The numbers below are estimates: real-world PIN-frequency data adjusted down for
+        Rust's higher security stakes. Real coverage will vary by server and group, but
+        the shape is right — you're working the odds, not guessing blind.
       </p>
       <div class="info-divider"></div>
       <table class="info-table">
@@ -635,12 +639,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td>100</td><td>about 1 in 4</td></tr>
-          <tr><td>500</td><td>about 1 in 2</td></tr>
-          <tr><td>1,000</td><td>about 2 in 3</td></tr>
-          <tr><td>2,000</td><td>about 3 in 4</td></tr>
-          <tr><td>3,000</td><td>about 4 in 5</td></tr>
-          <tr><td>5,000</td><td>about 9 in 10</td></tr>
+          <tr><td>100</td><td>about 1 in 8</td></tr>
+          <tr><td>500</td><td>about 1 in 3</td></tr>
+          <tr><td>1,000</td><td>about 2 in 5</td></tr>
+          <tr><td>2,000</td><td>about 1 in 2</td></tr>
+          <tr><td>3,000</td><td>about 3 in 5</td></tr>
+          <tr><td>5,000</td><td>about 3 in 4</td></tr>
         </tbody>
       </table>
       <div class="info-divider"></div>
