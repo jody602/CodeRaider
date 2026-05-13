@@ -43,6 +43,20 @@ function extractSteamId(claimedId) {
   return m ? m[1] : null;
 }
 
+async function fetchSteamPersona(steamId) {
+  const key = process.env.STEAM_WEB_API_KEY;
+  if (!key) return '';
+  try {
+    const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${key}&steamids=${steamId}`;
+    const res = await fetch(url);
+    if (!res.ok) return '';
+    const data = await res.json();
+    return data?.response?.players?.[0]?.personaname || '';
+  } catch {
+    return '';
+  }
+}
+
 module.exports = async function handler(req, res) {
   const appUrl = process.env.APP_URL || 'https://coderaid.win';
   try {
@@ -53,7 +67,9 @@ module.exports = async function handler(req, res) {
     if (!steamId) return res.redirect(`${appUrl}?steamError=no_id`);
 
     const token = await getAuth(getAdmin()).createCustomToken(`steam_${steamId}`, { steamId });
-    res.redirect(`${appUrl}?steamToken=${encodeURIComponent(token)}&steamId=${steamId}`);
+    const persona = await fetchSteamPersona(steamId);
+    const personaParam = persona ? `&steamPersona=${encodeURIComponent(persona)}` : '';
+    res.redirect(`${appUrl}?steamToken=${encodeURIComponent(token)}&steamId=${steamId}${personaParam}`);
   } catch (err) {
     console.error('Steam auth error:', err);
     const msg = encodeURIComponent((err && err.message) ? err.message.slice(0, 200) : 'unknown');

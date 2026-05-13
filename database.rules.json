@@ -11,6 +11,10 @@
     "userRooms": {
       ".read": true,
       ".write": true
+    },
+    "usernames": {
+      ".read": true,
+      ".write": true
     }
   }
 }

@@ -115,8 +115,18 @@
   .steam-signed-in { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:transparent; border:1px solid #1a2a1a; }
   .steam-id-label { font-size:9px; letter-spacing:2px; color:var(--dim); font-family:'Share Tech Mono',monospace; }
   .steam-id-val { font-size:10px; font-family:'Share Tech Mono',monospace; color:#3a7a4a; letter-spacing:1px; }
+  .steam-id-user { color:var(--accent); font-weight:700; margin-left:6px; }
   .steam-signout { background:none; border:none; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; }
   .steam-signout:hover { color:var(--danger); }
+
+  /* Auth gate (signed out) */
+  .auth-gate { width:100%; padding:24px 16px; margin-bottom:16px; background:#0e1318; border:1px solid var(--border); text-align:center; font-family:'Share Tech Mono',monospace; font-size:11px; line-height:1.8; color:var(--muted); letter-spacing:1px; }
+  .auth-gate strong { color:var(--accent); }
+
+  /* Username chooser */
+  .username-chooser { width:100%; }
+  .username-help { font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--dim); margin-top:6px; line-height:1.5; }
+  .username-error { font-family:'Share Tech Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--danger); margin-top:6px; min-height:14px; text-align:center; }
 
   /* Your Rooms (Steam-linked rejoin list) */
   .myrooms-section { width:100%; margin-bottom:16px; }
@@ -316,43 +326,57 @@
 
     <div class="steam-section" id="steam-section"></div>
 
-    <div class="myrooms-section" id="my-rooms-section" style="display:none;">
-      <div class="myrooms-header">
-        <span class="myrooms-label">Your Rooms</span>
+    <div class="auth-gate" id="auth-gate">
+      <strong>SIGN IN REQUIRED</strong><br>
+      Sign in with Steam above to use CodeRaider.<br>
+      You'll pick a username after signing in.
+    </div>
+
+    <div class="username-chooser" id="username-chooser" style="display:none;">
+      <div class="field-group">
+        <label>Choose your username</label>
+        <input class="text-input" id="username-input" type="text" placeholder="username" maxlength="20" autocomplete="off" />
+        <div class="username-help">3–20 chars. Letters, numbers, _ or -. Must be unique (case-insensitive).</div>
+        <div class="username-error" id="username-error"></div>
       </div>
-      <div class="myrooms-list" id="my-rooms-list"></div>
+      <div class="divider"></div>
+      <button class="start-btn" id="username-btn" onclick="submitUsername()">▶ CONTINUE</button>
     </div>
 
-    <div id="firebase-warn">
-      <strong>⚠ Sync not configured</strong><br>
-      Edit <strong>firebase-config.js</strong> to enable multi-user. Solo mode active.
+    <div id="join-controls" style="display:none;">
+      <div class="myrooms-section" id="my-rooms-section" style="display:none;">
+        <div class="myrooms-header">
+          <span class="myrooms-label">Your Rooms</span>
+        </div>
+        <div class="myrooms-list" id="my-rooms-list"></div>
+      </div>
+
+      <div id="firebase-warn">
+        <strong>⚠ Sync not configured</strong><br>
+        Edit <strong>firebase-config.js</strong> to enable multi-user. Solo mode active.
+      </div>
+
+      <div class="session-banner empty" id="session-banner">
+        <div class="banner-dot"></div>
+        <div class="banner-text"><strong id="banner-status">Enter a room code below</strong><br><span id="banner-detail">All raiders with the same room code share progress.</span></div>
+      </div>
+
+      <div class="field-group">
+        <label>Room Code</label>
+        <input class="text-input" id="room-input" type="text" placeholder="e.g. RAID01" maxlength="12" autocomplete="off" autocapitalize="characters" />
+      </div>
+
+      <div class="divider"></div>
+      <button class="start-btn" id="join-btn" onclick="joinSession()">▶ JOIN SESSION</button>
+
+      <p class="session-note">
+        <span>Share the room code</span> with your group.<br>
+        Everyone in the room gets unique codes in order.<br>
+        Works on phone, tablet, or desktop.
+      </p>
+      <button class="info-btn" onclick="openInfo()">? WHY THIS WORKS</button>
+      <button class="info-btn" onclick="showTestScreen()" style="margin-top:6px;border-color:var(--accent);color:var(--accent);background:#001a22;">⬡ TEST YOUR CODE</button>
     </div>
-
-    <div class="session-banner empty" id="session-banner">
-      <div class="banner-dot"></div>
-      <div class="banner-text"><strong id="banner-status">Enter a room code below</strong><br><span id="banner-detail">All raiders with the same room code share progress.</span></div>
-    </div>
-
-    <div class="field-group">
-      <label>Room Code</label>
-      <input class="text-input" id="room-input" type="text" placeholder="e.g. RAID01" maxlength="12" autocomplete="off" autocapitalize="characters" />
-    </div>
-
-    <div class="field-group">
-      <label>Your Raider Name</label>
-      <input class="text-input" id="name-input" type="text" placeholder="e.g. Jordan" maxlength="12" autocomplete="off" />
-    </div>
-
-    <div class="divider"></div>
-    <button class="start-btn" id="join-btn" onclick="joinSession()">▶ JOIN SESSION</button>
-
-    <p class="session-note">
-      <span>Share the room code</span> with your group.<br>
-      Everyone in the room gets unique codes in order.<br>
-      Works on phone, tablet, or desktop.
-    </p>
-    <button class="info-btn" onclick="openInfo()">? WHY THIS WORKS</button>
-    <button class="info-btn" onclick="showTestScreen()" style="margin-top:6px;border-color:var(--accent);color:var(--accent);background:#001a22;">⬡ TEST YOUR CODE</button>
   </div>
 
   <!-- TEST YOUR CODE -->
@@ -1075,15 +1099,6 @@ try {
 
 // Render Steam section now that steamCallbackUrl is resolved
 const STEAM_ICON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.187.008l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.606 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.455 1.012zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.662 0 3.015-1.35 3.015-3.015zm-5.273.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.252 0-2.265-1.014-2.265-2.265z"/></svg>`;
-document.getElementById('steam-section') && (() => {
-  const steamId = localStorage.getItem('cr_steamId');
-  const section = document.getElementById('steam-section');
-  if (steamId) {
-    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">CONNECTED</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
-  } else if (steamCallbackUrl) {
-    section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
-  }
-})();
 
 // ── Steam auth ────────────────────────────────────────────────────────────────
 function steamSignIn() {
@@ -1101,22 +1116,110 @@ function steamSignIn() {
 
 function steamSignOut() {
   localStorage.removeItem('cr_steamId');
+  localStorage.removeItem('cr_steamPersona');
+  localStorage.removeItem('cr_username');
+  myName = '';
   if (db?.auth) db.auth.signOut().catch(() => {});
-  updateSteamSection();
+  updateAuthUI();
 }
 
-function updateSteamSection() {
+// Drives all auth-related UI: steam section, gate, username chooser, join controls
+async function updateAuthUI() {
   const section = $('steam-section');
-  if (!section) return;
+  const gate = $('auth-gate');
+  const chooser = $('username-chooser');
+  const join = $('join-controls');
   const steamId = localStorage.getItem('cr_steamId');
-  if (steamId) {
-    section.innerHTML = `<div class="steam-signed-in"><span class="steam-id-label">● STEAM &nbsp;<span class="steam-id-val">CONNECTED</span></span><button class="steam-signout" onclick="steamSignOut()">sign out</button></div>`;
+
+  if (!steamId) {
+    if (section) section.innerHTML = steamCallbackUrl
+      ? `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`
+      : '';
+    gate && (gate.style.display = '');
+    chooser && (chooser.style.display = 'none');
+    join && (join.style.display = 'none');
+    stopMyRoomsListener();
+    return;
+  }
+
+  // Signed in via Steam — figure out if username is set
+  let username = localStorage.getItem('cr_username');
+  if (!username && firebaseReady) {
+    try {
+      const { ref, get } = db.rtdb;
+      const snap = await get(ref(db.database, `users/${steamId}`));
+      if (snap.exists()) {
+        username = snap.val().displayName || '';
+        if (username) localStorage.setItem('cr_username', username);
+      }
+    } catch (e) { console.warn('Username lookup failed:', e); }
+  }
+
+  if (username) {
+    myName = username;
+    if (section) section.innerHTML =
+      `<div class="steam-signed-in">`
+      + `<span class="steam-id-label">● STEAM <span class="steam-id-val">CONNECTED</span><span class="steam-id-user">@${escapeHtml(username)}</span></span>`
+      + `<button class="steam-signout" onclick="steamSignOut()">sign out</button>`
+      + `</div>`;
+    gate && (gate.style.display = 'none');
+    chooser && (chooser.style.display = 'none');
+    join && (join.style.display = '');
     startMyRoomsListener();
   } else {
-    if (steamCallbackUrl) {
-      section.innerHTML = `<button class="steam-btn" onclick="steamSignIn()">${STEAM_ICON} SIGN IN WITH STEAM</button>`;
+    if (section) section.innerHTML =
+      `<div class="steam-signed-in">`
+      + `<span class="steam-id-label">● STEAM <span class="steam-id-val">CONNECTED</span></span>`
+      + `<button class="steam-signout" onclick="steamSignOut()">sign out</button>`
+      + `</div>`;
+    gate && (gate.style.display = 'none');
+    join && (join.style.display = 'none');
+    if (chooser) {
+      chooser.style.display = '';
+      const inp = $('username-input');
+      if (inp && !inp.value) inp.value = localStorage.getItem('cr_steamPersona') || '';
+      $('username-error').textContent = '';
+      inp && inp.focus();
     }
-    stopMyRoomsListener();
+  }
+}
+
+const USERNAME_RE = /^[A-Za-z0-9_-]{3,20}$/;
+
+async function submitUsername() {
+  const errEl = $('username-error');
+  errEl.textContent = '';
+  const steamId = localStorage.getItem('cr_steamId');
+  if (!steamId) { errEl.textContent = 'Sign in with Steam first.'; return; }
+  if (!firebaseReady) { errEl.textContent = 'Sync not available. Try again later.'; return; }
+  const raw = $('username-input').value.trim();
+  if (!USERNAME_RE.test(raw)) {
+    errEl.textContent = 'Use 3–20 letters, numbers, _ or -.';
+    return;
+  }
+  const lower = raw.toLowerCase();
+  const btn = $('username-btn');
+  btn.disabled = true;
+  try {
+    const { ref, set, runTransaction } = db.rtdb;
+    const now = Date.now();
+    const result = await runTransaction(ref(db.database, `usernames/${lower}`), (cur) => {
+      if (cur && cur.steamId !== steamId) return; // abort — already taken
+      return { steamId, displayName: raw, createdAt: (cur && cur.createdAt) || now };
+    });
+    if (!result.committed) {
+      errEl.textContent = `"${raw}" is already taken.`;
+      return;
+    }
+    await set(ref(db.database, `users/${steamId}`), { displayName: raw, usernameLower: lower, createdAt: now });
+    localStorage.setItem('cr_username', raw);
+    myName = raw;
+    await updateAuthUI();
+  } catch (e) {
+    console.warn('Username claim failed:', e);
+    errEl.textContent = 'Could not save username. Try again.';
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1181,12 +1284,10 @@ function formatRelativeTime(ts) {
   return mo + 'mo ago';
 }
 
-function joinRoomFromList(code, name) {
+function joinRoomFromList(code) {
   if (!code) return;
   $('room-input').value = code;
-  $('name-input').value = name || localStorage.getItem('cr_lastName') || '';
   updateBanner();
-  if (!$('name-input').value) { $('name-input').focus(); return; }
   joinSession();
 }
 
@@ -1303,8 +1404,13 @@ const $ = (id) => document.getElementById(id);
   const urlParams = new URLSearchParams(window.location.search);
   const steamToken = urlParams.get('steamToken');
   const steamId = urlParams.get('steamId');
+  const steamPersona = urlParams.get('steamPersona') || '';
   if (steamToken && steamId) {
+    if (localStorage.getItem('cr_steamId') !== steamId) {
+      localStorage.removeItem('cr_username');
+    }
     localStorage.setItem('cr_steamId', steamId);
+    if (steamPersona) localStorage.setItem('cr_steamPersona', steamPersona);
     if (db?.auth) {
       try { await db.signInWithCustomToken(db.auth, steamToken); } catch (e) { console.warn('Steam sign-in failed:', e); }
     }
@@ -1315,15 +1421,13 @@ const $ = (id) => document.getElementById(id);
     window.history.replaceState({}, '', window.location.pathname);
   }
 
-  updateSteamSection();
+  await updateAuthUI();
 
   const lastRoom = localStorage.getItem('cr_lastRoom');
-  const lastName = localStorage.getItem('cr_lastName');
   if (lastRoom) $('room-input').value = lastRoom;
-  if (lastName) $('name-input').value = lastName;
 
-  $('room-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('name-input').focus(); });
-  $('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') joinSession(); });
+  $('room-input').addEventListener('keydown', e => { if (e.key === 'Enter') joinSession(); });
+  $('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitUsername(); });
 
   updateBanner();
   $('room-input').addEventListener('input', () => {
@@ -1372,9 +1476,9 @@ async function updateBanner() {
 // ── Join ─────────────────────────────────────────────────────────────────────
 async function joinSession() {
   const room = $('room-input').value.trim();
-  const name = $('name-input').value.trim();
+  const name = (localStorage.getItem('cr_username') || myName || '').trim();
   if (!room) { $('room-input').focus(); return; }
-  if (!name) { $('name-input').focus(); return; }
+  if (!name) { alert('Choose a username before joining.'); updateAuthUI(); return; }
 
   let savedCurrentIndex = null;
 
@@ -1386,20 +1490,9 @@ async function joinSession() {
 
     if (snap.exists()) {
       const existing = snap.val();
-      const isOnline = !!existing.online;
-      if (isOnline) {
-        // Only block if someone is actively using this name right now.
-        // Allow if localStorage confirms it's the same browser/user.
-        const isMyOwnName =
-          name.toLowerCase() === (localStorage.getItem('cr_lastName') || '').toLowerCase() &&
-          room.toLowerCase() === (localStorage.getItem('cr_lastRoom') || '').toLowerCase();
-        if (!isMyOwnName) {
-          alert(`"${name}" is already active in room ${room}. Choose a different name.`);
-          return;
-        }
-      }
-      // Name is offline — always allow. Restore their last position if available.
-      if (!isOnline && existing.currentIndex) {
+      // Usernames are globally unique, so any existing raider with this name is us.
+      // If they have a saved position from a previous session, restore it.
+      if (!existing.online && existing.currentIndex) {
         savedCurrentIndex = existing.currentIndex;
       }
     }
@@ -1413,7 +1506,6 @@ async function joinSession() {
   lastClickTime = 0;
 
   localStorage.setItem('cr_lastRoom', room);
-  localStorage.setItem('cr_lastName', name);
 
   $('hdr-name').textContent = myName;
   $('hdr-room').textContent = 'ROOM ' + roomCode;
@@ -1660,7 +1752,7 @@ async function leaveSession() {
   if (targetsInterval) { clearInterval(targetsInterval); targetsInterval = null; }
   targets = {}; renderTargets();
   soloLocalTime = 0; localSessionStart = 0; globalIdxHistory = [];
-  myName = ''; roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
+  roomCode = ''; myCodesUsed = 0; myHistory = []; myHistoryPos = -1; lastClickTime = 0;
   $('done-overlay').classList.remove('show');
   $('recent-codes').innerHTML = '<span class="recent-empty">—</span>';
   resetFoundUI();
@@ -2114,6 +2206,7 @@ window.openInfo      = openInfo;
 window.closeInfo     = closeInfo;
 window.steamSignIn   = steamSignIn;
 window.steamSignOut  = steamSignOut;
+window.submitUsername = submitUsername;
 window.showTestScreen = showTestScreen;
 window.backToSetup   = backToSetup;
 window.analyzeCode   = analyzeCode;
@@ -2136,12 +2229,12 @@ $('my-rooms-list').addEventListener('click', (e) => {
   const removeBtn = e.target.closest('.myroom-remove');
   if (removeBtn) { e.stopPropagation(); removeMyRoom(removeBtn.dataset.rkey); return; }
   const row = e.target.closest('.myroom-row');
-  if (row) joinRoomFromList(row.dataset.room, row.dataset.name);
+  if (row) joinRoomFromList(row.dataset.room);
 });
 $('my-rooms-list').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   const row = e.target.closest('.myroom-row');
-  if (row) { e.preventDefault(); joinRoomFromList(row.dataset.room, row.dataset.name); }
+  if (row) { e.preventDefault(); joinRoomFromList(row.dataset.room); }
 });
 $('targets-list').addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
