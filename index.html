@@ -1878,6 +1878,9 @@ async function confirmAddTarget() {
 }
 
 async function removeTarget(bmId) {
+  const t = targets[bmId];
+  const name = t?.name || 'this target';
+  if (!confirm(`Remove ${name} from the targets list? Everyone in this room will lose them.`)) return;
   delete targets[bmId];
   renderTargets();
   if (firebaseReady && roomCode) {
