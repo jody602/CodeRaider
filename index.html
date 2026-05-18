@@ -597,7 +597,6 @@
           <span>Coordinated raid coverage.</span><br>
           Everyone in the room gets unique codes in order.
         </p>
-        <button class="info-btn" onclick="openInfo()">? WHY THIS WORKS</button>
         <button class="info-btn" onclick="showTestScreen()" style="margin-top:6px;">⬡ TEST YOUR CODE</button>
       </div>
 
@@ -1783,9 +1782,13 @@ async function updateBanner() {
 }
 
 // ── Setup sub-screens (picker / create / share / join) ─────────────────────
-const PANES = ['picker-pane', 'create-pane', 'share-pane', 'join-pane'];
+// NB: array inlined (not a module-level const) so this is safe to call during
+// the init block's `await updateAuthUI()` — a top-level const would still be
+// in the TDZ at that point.
 function showPane(id) {
-  PANES.forEach(p => { const el = $(p); if (el) el.style.display = (p === id) ? '' : 'none'; });
+  ['picker-pane', 'create-pane', 'share-pane', 'join-pane'].forEach(p => {
+    const el = $(p); if (el) el.style.display = (p === id) ? '' : 'none';
+  });
 }
 function showPickerScreen() { showPane('picker-pane'); }
 function showCreateScreen() {
