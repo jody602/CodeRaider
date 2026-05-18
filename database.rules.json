@@ -14,7 +14,9 @@
     },
     "usernames": {
       ".read": true,
-      ".write": true
+      "$name": {
+        ".write": "!data.exists() || (auth != null && data.child('steamId').val() === auth.uid)"
+      }
     },
     "users": {
       ".read": true,

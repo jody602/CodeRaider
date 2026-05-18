@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>CodeRaider — Theme Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Hazard Tape palette */
+    --bg:        #0e0e10;
+    --surface:   #1c1c1f;
+    --surface-2: #232327;
+    --border:    #2e2e30;
+    --border-2:  #3a3a3d;
+    --primary:   #f0a020;  /* hazard yellow */
+    --primary-d: #b87916;
+    --accent:    #d04020;  /* rust red */
+    --text:      #e4d8c0;  /* paper */
+    --muted:     #8a8276;
+    --dim:       #565047;
+    --green:     #7fa849;
+    --danger:    #d03030;
+
+    --stencil: 'Black Ops One', 'Impact', sans-serif;
+    --mono:    'JetBrains Mono', 'Consolas', monospace;
+    --sans:    'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Light grain noise on the base background */
+  html {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(208,64,32,.06), transparent 60%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    min-height: 100%;
+  }
+  body {
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Preview chrome (not part of the actual theme) */
+  .preview-banner {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(14,14,16,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 1px;
+  }
+  .preview-banner .led {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--primary); box-shadow: 0 0 8px var(--primary);
+  }
+  .compare-link {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--accent); text-decoration: none;
+    padding: 4px 10px; border: 1px solid var(--accent);
+    text-transform: uppercase;
+  }
+  .compare-link:hover { background: rgba(208,64,32,.12); }
+
+  /* Hazard tape band — used sparingly */
+  .hazard {
+    height: 6px;
+    background: repeating-linear-gradient(-45deg,
+      var(--primary) 0 14px,
+      #15110a 14px 28px);
+  }
+  .hazard.thin { height: 3px; }
+
+  /* App frame mirrors the live app's max-width */
+  .frame {
+    width: 100%; max-width: 540px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+  }
+
+  .section-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--dim); text-transform: uppercase;
+    padding: 40px 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::before {
+    content: ''; width: 12px; height: 2px;
+    background: var(--accent);
+  }
+
+  /* ===== Top bar ===== */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--stencil); font-size: 18px;
+    color: var(--primary); letter-spacing: 3px;
+  }
+  .brand-mark {
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--primary); color: #15110a;
+    font-family: var(--stencil); font-size: 15px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px #0a0a0c, 0 0 0 2px var(--primary);
+  }
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .status .led {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+  /* ===== Landing hero ===== */
+  .hero { padding: 40px 0 28px; text-align: center; }
+  .hero-eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 5px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 18px;
+  }
+  .hero-h1 {
+    font-family: var(--stencil);
+    font-size: 46px; line-height: 1.02;
+    color: var(--text); letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+  .hero-h1 .y { color: var(--primary); }
+  .hero-tag {
+    font-family: var(--sans);
+    font-size: 14px; line-height: 1.6;
+    color: var(--muted);
+    max-width: 440px; margin: 0 auto 28px;
+  }
+
+  /* ===== Buttons ===== */
+  .btn-primary {
+    width: 100%; height: 60px;
+    background: var(--primary); color: #15110a;
+    border: none; border-bottom: 3px solid var(--primary-d);
+    font-family: var(--stencil); font-size: 16px; letter-spacing: 4px;
+    text-transform: uppercase; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+    transition: filter .15s, transform .05s, border-bottom-width .05s;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:active { transform: translateY(1px); border-bottom-width: 2px; }
+
+  .btn-outline {
+    height: 52px; padding: 0 18px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-2);
+    font-family: var(--stencil); font-size: 13px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+  .btn-danger {
+    height: 52px; padding: 0 18px;
+    background: transparent; color: var(--accent);
+    border: 1px solid var(--accent);
+    font-family: var(--stencil); font-size: 13px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-danger:hover { background: rgba(208,64,32,.1); }
+
+  /* ===== Steam sign-in (cool-tone outlier, stays neutral) ===== */
+  .steam-btn {
+    width: 100%; height: 46px;
+    background: #14181f; color: #8babc7;
+    border: 1px solid #2d3d52;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 18px;
+    transition: border-color .15s, color .15s;
+  }
+  .steam-btn:hover { border-color: #4d6d8c; color: #b0c8df; }
+  .steam-btn .steam-glyph { font-size: 14px; }
+
+  /* ===== Inputs ===== */
+  .field { margin-bottom: 16px; }
+  .field-label {
+    display: block;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .input {
+    width: 100%; height: 54px;
+    background: var(--surface); color: var(--primary);
+    border: 1px solid var(--border-2);
+    font-family: var(--mono); font-size: 22px; font-weight: 700;
+    text-align: center; letter-spacing: 6px;
+    padding: 0 14px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .input.text { font-size: 18px; letter-spacing: 2px; }
+  .input:focus {
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
+  }
+  .input::placeholder { color: var(--dim); font-size: 16px; letter-spacing: 3px; }
+
+  /* ===== Username chooser (first sign-in) ===== */
+  .username-chooser { width: 100%; padding: 14px 0 6px; }
+  .username-eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 5px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .username-h {
+    font-family: var(--stencil); font-size: 26px; letter-spacing: 2px;
+    color: var(--text); margin-bottom: 8px; line-height: 1.1;
+  }
+  .username-sub {
+    font-family: var(--sans); font-size: 13px; color: var(--muted);
+    line-height: 1.55; margin-bottom: 16px;
+  }
+  .username-status {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+    margin-top: 8px; padding: 7px 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .username-status.available {
+    color: var(--green);
+    background: rgba(127,168,73,.08);
+    border: 1px solid rgba(127,168,73,.4);
+  }
+  .username-status.taken {
+    color: var(--danger);
+    background: rgba(208,48,48,.08);
+    border: 1px solid rgba(208,48,48,.4);
+  }
+
+  /* ===== Setup picker (two CTAs) ===== */
+  .setup-picker { display: flex; flex-direction: column; gap: 12px; }
+  .picker-or {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 4px;
+    color: var(--dim); text-transform: uppercase;
+    margin: 2px 0;
+  }
+  .picker-or::before, .picker-or::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .btn-secondary {
+    width: 100%; height: 60px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-2);
+    font-family: var(--stencil); font-size: 16px; letter-spacing: 4px;
+    text-transform: uppercase; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== Your rooms history ===== */
+  .my-rooms-wrap { margin-top: 26px; }
+  .my-rooms-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .my-rooms { display: flex; flex-direction: column; gap: 4px; }
+  .my-room {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border-2);
+    padding: 10px 12px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .my-room:hover { border-color: var(--primary); }
+  .my-room-arrow { color: var(--primary); font-family: var(--mono); font-size: 14px; flex-shrink: 0; }
+  .my-room-code {
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    color: var(--accent); letter-spacing: 2px; flex-shrink: 0;
+  }
+  .my-room-name {
+    flex: 1; font-family: var(--sans); font-size: 13px; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .my-room-time {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+    color: var(--dim); text-transform: uppercase; flex-shrink: 0;
+  }
+
+  /* ===== Share screen ===== */
+  .share-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    padding: 24px 0 4px;
+  }
+  .share-eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 6px;
+    color: var(--green); text-transform: uppercase;
+  }
+  .share-name {
+    font-family: var(--stencil); font-size: 22px; letter-spacing: 2px;
+    color: var(--text); text-align: center; line-height: 1.15;
+  }
+  /* Mini-keypad room code (2 groups of 3) */
+  .share-code {
+    display: flex; align-items: center; gap: 10px;
+    margin: 6px 0 2px;
+  }
+  .share-group { display: flex; gap: 6px; }
+  .share-cell {
+    position: relative;
+    width: 48px; height: 64px;
+    background: linear-gradient(180deg, #1e1e22 0%, #131316 100%);
+    border: 1px solid #3a3a30;
+    border-top-color: #4d4d40;
+    border-bottom-color: #18181a;
+    font-family: var(--mono); font-weight: 700; font-size: 32px;
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    text-shadow: 0 0 12px rgba(240,160,32,.4);
+    box-shadow:
+      inset 0 0 18px rgba(0,0,0,.65),
+      inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .share-cell::before, .share-cell::after {
+    content: ''; position: absolute;
+    width: 6px; height: 6px;
+    border: 1px solid var(--primary); opacity: .3;
+  }
+  .share-cell::before { top: 4px; left: 4px;  border-right: none; border-bottom: none; }
+  .share-cell::after  { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+  .share-sep {
+    font-family: var(--stencil); font-size: 28px; line-height: 1;
+    color: var(--accent);
+  }
+  @media (max-width: 380px) {
+    .share-cell { width: 40px; height: 54px; font-size: 26px; }
+  }
+
+  /* Code / link copy rows */
+  .share-line {
+    width: 100%;
+    display: flex; align-items: stretch;
+    border: 1px solid var(--border-2); background: var(--surface);
+    min-height: 44px;
+  }
+  .share-line-label {
+    padding: 0 12px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+    border-right: 1px solid var(--border-2);
+    display: flex; align-items: center; flex-shrink: 0;
+  }
+  .share-line-val {
+    flex: 1; padding: 0 12px;
+    display: flex; align-items: center;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    letter-spacing: 1px; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .share-line-btn {
+    flex-shrink: 0; padding: 0 14px;
+    background: var(--bg); color: var(--primary); border: none;
+    border-left: 1px solid var(--border-2);
+    font-family: var(--stencil); font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .share-line-btn:hover { background: var(--surface-2); }
+  .share-line-btn.copied { color: var(--green); }
+
+  /* ===== Raid header ===== */
+  .raid-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 14px; padding: 20px 0 4px;
+  }
+  .raid-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .raid-meta-label {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 4px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .raid-meta-val {
+    font-family: var(--stencil); font-size: 24px;
+    color: var(--text); letter-spacing: 2px;
+  }
+  .raid-meta-val.accent { color: var(--primary); }
+  .raid-room-name {
+    font-family: var(--stencil); font-size: 20px;
+    color: var(--text); letter-spacing: 1px;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .raid-meta-sub {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2px;
+    color: var(--accent); font-weight: 700; margin-top: 4px;
+  }
+  .raid-meta-sub .code { color: var(--primary); }
+  .raid-share-btn {
+    margin-top: 6px;
+    align-self: flex-start;
+    background: transparent;
+    border: 1px solid var(--border-2); color: var(--muted);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+    padding: 4px 10px; cursor: pointer; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: border-color .15s, color .15s;
+  }
+  .raid-share-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* Progress ring */
+  .ring-wrap { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 4; }
+  .ring-fg { fill: none; stroke: var(--primary); stroke-width: 4; stroke-linecap: round; }
+  .ring-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 14px; font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* ===== The 4-digit code display (the hero piece) ===== */
+  .code-stage {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    padding: 24px 0 8px;
+  }
+  .code-eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 6px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .code-display { display: flex; gap: 10px; }
+  .digit {
+    position: relative;
+    width: 74px; height: 96px;
+    background: linear-gradient(180deg, #1e1e22 0%, #131316 100%);
+    border: 1px solid #3a3a30;
+    border-top-color: #4d4d40;
+    border-bottom-color: #18181a;
+    font-family: var(--mono); font-weight: 700; font-size: 54px;
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    text-shadow: 0 0 14px rgba(240,160,32,.45);
+    box-shadow:
+      inset 0 0 28px rgba(0,0,0,.65),
+      inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  /* Machined-panel corner notches */
+  .digit::before, .digit::after {
+    content: ''; position: absolute;
+    width: 8px; height: 8px;
+    border: 1px solid var(--primary);
+    opacity: .35;
+  }
+  .digit::before { top: 5px; left: 5px;  border-right: none; border-bottom: none; }
+  .digit::after  { bottom: 5px; right: 5px; border-left: none; border-top: none; }
+  /* Little LED indicator dot per panel */
+  .digit .led {
+    position: absolute; top: 6px; right: 6px;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--primary); box-shadow: 0 0 6px var(--primary);
+  }
+  @media (min-width: 440px) {
+    .digit { width: 84px; height: 110px; font-size: 64px; }
+    .code-display { gap: 12px; }
+  }
+
+  .code-rank {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .code-rank span { color: var(--accent); font-weight: 700; }
+
+  /* ===== Raider pills ===== */
+  .raiders {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+    margin-top: 6px;
+  }
+  .raider {
+    padding: 3px 11px;
+    background: var(--surface); border: 1px solid var(--border-2);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+    color: var(--muted);
+  }
+  .raider.me { border-color: var(--primary); color: var(--primary); }
+  .raider.offline { opacity: .4; font-style: italic; }
+
+  /* ===== Stat bar (with thin hazard strip header) ===== */
+  .stat-bar-wrap { margin-top: 22px; }
+  .stat-bar {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px; background: var(--border-2);
+    border: 1px solid var(--border-2);
+  }
+  .stat {
+    background: var(--surface); padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  }
+  .stat-l {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .stat-v {
+    font-family: var(--mono); font-size: 18px; font-weight: 700;
+    color: var(--text);
+  }
+  .stat-v.primary { color: var(--primary); }
+  .stat-v.accent  { color: var(--accent); }
+  .stat-v.green   { color: var(--green); }
+
+  /* ===== Controls ===== */
+  .controls {
+    display: flex; gap: 10px; margin-top: 18px;
+  }
+  .controls .btn-outline { flex: 1; height: 56px; font-size: 14px; }
+  .btn-primary-fill {
+    flex: 2; height: 56px;
+    background: var(--primary); color: #15110a;
+    border: none; border-bottom: 3px solid var(--primary-d);
+    font-family: var(--stencil); font-size: 15px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    transition: filter .15s, transform .05s;
+  }
+  .btn-primary-fill:hover { filter: brightness(1.08); }
+  .btn-primary-fill:active { transform: translateY(1px); }
+
+  .found-row { margin-top: 12px; }
+  .btn-found {
+    width: 100%; height: 50px;
+    background: rgba(127,168,73,.06); color: var(--green);
+    border: 1px solid var(--green);
+    font-family: var(--stencil); font-size: 14px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-found:hover { background: rgba(127,168,73,.14); }
+
+  /* ===== Key hints ===== */
+  .key-hint {
+    display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap;
+  }
+  .key-chip {
+    padding: 3px 10px;
+    background: var(--surface); border: 1px solid var(--border-2);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+    color: var(--muted);
+  }
+
+  /* ===== Recent fails ===== */
+  .recent { margin-top: 22px; }
+  .recent-l {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .recent-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .recent-code {
+    padding: 5px 12px;
+    background: var(--surface); border: 1px solid var(--border-2);
+    font-family: var(--mono); font-size: 14px; font-weight: 700;
+    color: var(--dim); letter-spacing: 2px;
+  }
+
+  /* ===== Found-code state ===== */
+  .found-display {
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 44px 0;
+  }
+  .found-label {
+    font-family: var(--stencil); font-size: 18px; letter-spacing: 8px;
+    color: var(--green);
+  }
+  .found-code {
+    font-family: var(--mono); font-size: 58px; font-weight: 700;
+    color: var(--green); letter-spacing: 10px;
+    text-shadow: 0 0 22px rgba(127,168,73,.5);
+  }
+  .found-sub {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 2px; color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ===== Palette swatches (preview only) ===== */
+  .swatches {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+    margin-top: 14px;
+  }
+  .swatch {
+    aspect-ratio: 1; border: 1px solid var(--border);
+    display: flex; align-items: flex-end;
+    padding: 6px;
+    font-family: var(--mono); font-size: 8px; letter-spacing: 1px;
+    color: var(--text); text-shadow: 0 1px 2px rgba(0,0,0,.85);
+  }
+  .swatch.on-yellow { color: #15110a; text-shadow: none; }
+
+  .notes {
+    margin-top: 14px;
+    font-family: var(--mono); font-size: 10px; line-height: 1.7;
+    color: var(--muted); letter-spacing: 1px;
+  }
+  .notes b { color: var(--primary); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  <span class="led"></span>
+  <span>THEME PREVIEW &mdash; /preview.html &mdash; NOT THE LIVE SITE</span>
+  <a class="compare-link" href="/">VIEW LIVE</a>
+</div>
+
+<div class="hazard"></div>
+
+<div class="frame">
+
+  <!-- TOP BAR -->
+  <div class="section-label">Top bar</div>
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand-mark">R</span>
+      CODERAIDER
+    </div>
+    <div class="status">
+      <span class="led"></span> LIVE
+    </div>
+  </div>
+
+  <!-- LANDING HERO -->
+  <div class="section-label">Landing hero (signed-out)</div>
+  <div class="hero">
+    <div class="hero-eyebrow">Tactical code-lock coordination</div>
+    <h1 class="hero-h1">CRACK CODES<br><span class="y">TOGETHER</span></h1>
+    <p class="hero-tag">CodeRaider splits all 10,000 Rust code-lock PINs across your raid group, ordered by what real players actually pick.</p>
+    <button class="btn-primary">SIGN IN WITH STEAM</button>
+  </div>
+
+  <!-- FIRST SIGN-IN: USERNAME CLAIM -->
+  <div class="section-label">First sign-in &mdash; claim username</div>
+  <button class="steam-btn">
+    <span class="steam-glyph">&#x2B22;</span> SIGNED IN VIA STEAM
+  </button>
+  <div class="username-chooser">
+    <div class="username-eyebrow">Permanent &middot; Unique</div>
+    <div class="username-h">Pick your raider name</div>
+    <div class="username-sub">Once you claim it, it's yours forever &mdash; nobody else on CodeRaider can take it. Choose carefully.</div>
+    <div class="field">
+      <label class="field-label">Username</label>
+      <input class="input text" value="jordan_r" />
+      <div class="username-status available">&#x2713; jordan_r is available</div>
+    </div>
+    <button class="btn-primary">CLAIM USERNAME</button>
+  </div>
+
+  <!-- SETUP PICKER -->
+  <div class="section-label">Setup &mdash; pick a path</div>
+  <button class="steam-btn">
+    <span class="steam-glyph">&#x2B22;</span> SIGNED IN AS JORDAN_R
+  </button>
+
+  <div class="setup-picker">
+    <button class="btn-primary">+ CREATE NEW ROOM</button>
+    <div class="picker-or">OR</div>
+    <button class="btn-secondary">&rarr; JOIN EXISTING ROOM</button>
+  </div>
+
+  <div class="my-rooms-wrap">
+    <div class="my-rooms-label">Your recent rooms</div>
+    <div class="my-rooms">
+      <div class="my-room">
+        <span class="my-room-arrow">&rsaquo;</span>
+        <span class="my-room-code">K7X-MQ4</span>
+        <span class="my-room-name">Bandit Tier Raid</span>
+        <span class="my-room-time">2h ago</span>
+      </div>
+      <div class="my-room">
+        <span class="my-room-arrow">&rsaquo;</span>
+        <span class="my-room-code">B3W-PNH</span>
+        <span class="my-room-name">Late Night Squad</span>
+        <span class="my-room-time">YESTERDAY</span>
+      </div>
+      <div class="my-room">
+        <span class="my-room-arrow">&rsaquo;</span>
+        <span class="my-room-code">A6T-LZN</span>
+        <span class="my-room-name">Solo Practice</span>
+        <span class="my-room-time">3D AGO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE FORM -->
+  <div class="section-label">Create room form</div>
+  <div class="field">
+    <label class="field-label">Room name</label>
+    <input class="input text" value="Bandit Tier Raid" />
+  </div>
+  <button class="btn-primary">GENERATE ROOM</button>
+
+  <!-- SHARE SCREEN -->
+  <div class="section-label">Room created &mdash; share</div>
+  <div class="share-stage">
+    <div class="share-eyebrow">Room created</div>
+    <div class="share-name">BANDIT TIER RAID</div>
+
+    <div class="share-code">
+      <div class="share-group">
+        <div class="share-cell">K</div>
+        <div class="share-cell">7</div>
+        <div class="share-cell">X</div>
+      </div>
+      <div class="share-sep">&mdash;</div>
+      <div class="share-group">
+        <div class="share-cell">M</div>
+        <div class="share-cell">Q</div>
+        <div class="share-cell">4</div>
+      </div>
+    </div>
+
+    <div class="share-line">
+      <span class="share-line-label">CODE</span>
+      <span class="share-line-val">K7X-MQ4</span>
+      <button class="share-line-btn">COPY</button>
+    </div>
+
+    <div class="share-line">
+      <span class="share-line-label">LINK</span>
+      <span class="share-line-val">coderaid.win/r/K7X-MQ4</span>
+      <button class="share-line-btn">COPY</button>
+    </div>
+  </div>
+
+  <button class="btn-primary" style="margin-top:18px;">START RAIDING &rarr;</button>
+
+  <!-- JOIN FORM -->
+  <div class="section-label">Join existing room</div>
+  <div class="field">
+    <label class="field-label">Room code</label>
+    <input class="input" value="K7X-MQ4" />
+  </div>
+  <button class="btn-primary">JOIN RAID</button>
+
+  <!-- ACTIVE RAID -->
+  <div class="section-label">Active raid</div>
+  <div class="raid-header">
+    <div class="raid-meta">
+      <div class="raid-meta-label">RAID ROOM</div>
+      <div class="raid-room-name">BANDIT TIER RAID</div>
+      <div class="raid-meta-sub"><span class="code">K7X-MQ4</span> &middot; 4 ACTIVE</div>
+      <button class="raid-share-btn">&#x2398; SHARE</button>
+    </div>
+    <div class="ring-wrap">
+      <svg width="76" height="76" viewBox="0 0 76 76">
+        <circle class="ring-bg" cx="38" cy="38" r="32"></circle>
+        <circle class="ring-fg" cx="38" cy="38" r="32"
+                stroke-dasharray="201" stroke-dashoffset="88"></circle>
+      </svg>
+      <div class="ring-label">56%</div>
+    </div>
+  </div>
+
+  <div class="code-stage">
+    <div class="code-eyebrow">Try this code</div>
+    <div class="code-display">
+      <div class="digit"><span class="led"></span>4</div>
+      <div class="digit"><span class="led"></span>2</div>
+      <div class="digit"><span class="led"></span>0</div>
+      <div class="digit"><span class="led"></span>7</div>
+    </div>
+    <div class="code-rank">RANK <span>#5,612</span> &middot; OF 10,000</div>
+  </div>
+
+  <div class="raiders">
+    <div class="raider me">YOU</div>
+    <div class="raider">ALEX</div>
+    <div class="raider">SAM_K</div>
+    <div class="raider offline">RILEY</div>
+  </div>
+
+  <div class="stat-bar-wrap">
+    <div class="hazard thin"></div>
+    <div class="stat-bar">
+      <div class="stat"><div class="stat-l">TESTED</div><div class="stat-v">5,612</div></div>
+      <div class="stat"><div class="stat-l">REMAINING</div><div class="stat-v primary">4,388</div></div>
+      <div class="stat"><div class="stat-l">FOUND</div><div class="stat-v green">0</div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-primary-fill" style="flex:1; height:64px; font-size:17px; letter-spacing:5px;">NEXT &rarr;</button>
+  </div>
+
+  <div class="found-row">
+    <button class="btn-found">&#x2713; I FOUND THE CODE</button>
+  </div>
+
+  <div class="key-hint">
+    <span class="key-chip">SPACE</span>
+    <span class="key-chip">ENTER &rarr; NEXT</span>
+    <span class="key-chip">F = FOUND</span>
+  </div>
+
+  <div class="recent">
+    <div class="recent-l">Recent fails</div>
+    <div class="recent-list">
+      <span class="recent-code">9182</span>
+      <span class="recent-code">4503</span>
+      <span class="recent-code">7651</span>
+      <span class="recent-code">2389</span>
+    </div>
+  </div>
+
+  <!-- CODE FOUND STATE -->
+  <div class="section-label">Code found</div>
+  <div class="found-display">
+    <div class="found-label">UNLOCKED</div>
+    <div class="found-code">4207</div>
+    <div class="found-sub">FOUND BY ALEX &middot; RAID COMPLETE</div>
+    <button class="btn-outline">EXIT RAID</button>
+  </div>
+
+  <!-- PALETTE -->
+  <div class="section-label">Palette</div>
+  <div class="swatches">
+    <div class="swatch" style="background:#0e0e10">BG</div>
+    <div class="swatch" style="background:#1c1c1f">SURF</div>
+    <div class="swatch" style="background:#2e2e30">BRDR</div>
+    <div class="swatch on-yellow" style="background:#f0a020">PRIM</div>
+    <div class="swatch" style="background:#d04020">ACC</div>
+    <div class="swatch" style="background:#7fa849">OK</div>
+  </div>
+
+  <div class="notes">
+    <b>Type:</b> Black Ops One (stencil) &middot; JetBrains Mono (data) &middot; Inter (body)<br>
+    <b>Texture:</b> Light SVG grain on background + machined corner notches on digit panels<br>
+    <b>Hazard tape:</b> 6px band at top of app + 3px strip above stat bar &mdash; used sparingly
+  </div>
+
+</div>
+
+</body>
+</html>
