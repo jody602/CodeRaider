@@ -21,6 +21,10 @@
     "users": {
       ".read": true,
       ".write": true
+    },
+    "playerHistory": {
+      ".read": true,
+      ".write": true
     }
   }
 }

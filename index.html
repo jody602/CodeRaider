@@ -449,6 +449,177 @@
   .share-line-btn:hover { background: var(--surface-2); }
   .share-line-btn.copied { color: var(--green); }
 
+  /* === Settings drawer === */
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .gear-btn {
+    background: transparent; border: 1px solid var(--border-2);
+    color: var(--muted); font-size: 14px; line-height: 1;
+    padding: 4px 8px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .gear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .settings-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    z-index: 29; opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .settings-backdrop.open { opacity: 1; pointer-events: auto; }
+  .settings-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: 100%; max-width: 380px;
+    background: var(--bg);
+    border-left: 1px solid var(--border-2);
+    z-index: 30;
+    transform: translateX(100%); transition: transform .22s ease;
+    display: flex; flex-direction: column;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .settings-drawer.open { transform: translateX(0); }
+  .settings-drawer::before {
+    content: ''; display: block; height: 6px;
+    background: repeating-linear-gradient(-45deg, var(--accent) 0 14px, #15110a 14px 28px);
+    flex-shrink: 0;
+  }
+  .settings-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 8px;
+  }
+  .settings-title {
+    font-family: var(--stencil); font-size: 18px;
+    letter-spacing: 3px; color: var(--accent);
+  }
+  .settings-close {
+    background: transparent; border: 1px solid var(--border-2);
+    color: var(--muted);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2px;
+    padding: 5px 12px; cursor: pointer;
+  }
+  .settings-close:hover { border-color: var(--danger); color: var(--danger); }
+  .settings-body { padding: 6px 20px 28px; }
+  .settings-section { margin-bottom: 22px; }
+  .settings-section-h {
+    font-family: var(--stencil); font-size: 12px; letter-spacing: 4px;
+    color: var(--accent2); text-transform: uppercase;
+    padding-bottom: 8px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 14px; padding: 12px 0;
+    border-bottom: 1px solid var(--surface);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-text { flex: 1; min-width: 0; }
+  .settings-row-label {
+    font-family: var(--sans); font-size: 14px; color: var(--text);
+    line-height: 1.3;
+  }
+  .settings-row-sub {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+    color: var(--muted); margin-top: 4px; line-height: 1.4;
+  }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative; width: 44px; height: 24px;
+    background: var(--surface-2); border: 1px solid var(--border-2);
+    border-radius: 12px; cursor: pointer; flex-shrink: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .toggle::after {
+    content: ''; position: absolute;
+    top: 1px; left: 1px;
+    width: 20px; height: 20px;
+    background: var(--muted); border-radius: 50%;
+    transition: left .15s, background .15s;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent-d); }
+  .toggle.on::after { left: 21px; background: #15110a; }
+
+  .settings-reset {
+    width: 100%; margin-top: 18px;
+    background: none; border: 1px solid var(--border-2);
+    color: var(--muted);
+    font-family: var(--stencil); font-size: 12px; letter-spacing: 2px;
+    padding: 11px; cursor: pointer; text-transform: uppercase;
+    transition: color .15s, border-color .15s;
+  }
+  .settings-reset:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* Hidden via preference */
+  .cr-hidden { display: none !important; }
+  /* When hazard stripe is disabled */
+  body.no-hazard .app::before { display: none; }
+
+  /* === Offline heatmap === */
+  .heatmap-section { margin-top: 16px; }
+  .heatmap-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .heatmap-label {
+    font-family: var(--stencil); font-size: 12px; letter-spacing: 3px;
+    color: var(--accent2); text-transform: uppercase;
+  }
+  .heatmap-best {
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    letter-spacing: 1px;
+  }
+  .heatmap-best.no-data { color: var(--dim); }
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 22px repeat(24, 1fr);
+    gap: 1px; background: var(--border-2);
+    border: 1px solid var(--border-2);
+    padding: 1px; font-family: var(--mono);
+  }
+  .heatmap-corner, .heatmap-day-label, .heatmap-hour-label, .heatmap-cell {
+    background: var(--bg);
+  }
+  .heatmap-corner { aspect-ratio: 1; }
+  .heatmap-hour-label, .heatmap-day-label {
+    font-size: 8px; color: var(--dim); letter-spacing: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2px 0;
+  }
+  .heatmap-day-label { font-size: 9px; color: var(--muted); }
+  .heatmap-cell {
+    aspect-ratio: 1; min-height: 10px;
+    background: var(--surface);
+    transition: filter .12s;
+  }
+  .heatmap-cell:hover { filter: brightness(1.4); outline: 1px solid var(--accent); position: relative; z-index: 1; }
+  /* color scale: green (low/offline) → orange → red (high/online) */
+  .heatmap-cell.l0 { background: rgba(127,168,73,.65); }   /* 0-15% online */
+  .heatmap-cell.l1 { background: rgba(160,168,73,.65); }   /* 15-30% */
+  .heatmap-cell.l2 { background: rgba(200,140,40,.7); }    /* 30-50% */
+  .heatmap-cell.l3 { background: rgba(208,100,40,.75); }   /* 50-70% */
+  .heatmap-cell.l4 { background: rgba(208,64,32,.85); }    /* 70-100% */
+  .heatmap-cell.nd { background: var(--surface); }         /* no data */
+  .heatmap-legend {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+    font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px; color: var(--muted);
+  }
+  .heatmap-legend-bar {
+    display: flex; flex: 1; height: 6px;
+    background: linear-gradient(to right,
+      rgba(127,168,73,.65) 0%, rgba(127,168,73,.65) 15%,
+      rgba(160,168,73,.65) 15%, rgba(160,168,73,.65) 30%,
+      rgba(200,140,40,.7) 30%, rgba(200,140,40,.7) 50%,
+      rgba(208,100,40,.75) 50%, rgba(208,100,40,.75) 70%,
+      rgba(208,64,32,.85) 70%, rgba(208,64,32,.85) 100%);
+  }
+  .heatmap-empty {
+    text-align: center; padding: 22px 12px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--muted); letter-spacing: 1px; line-height: 1.6;
+    border: 1px dashed var(--border-2);
+  }
+  .heatmap-empty strong { color: var(--accent); font-weight: 500; }
+
   /* Desktop landing layout (signed-out only) */
   @media (min-width: 768px) {
     body.signed-out { padding: 24px; }
@@ -489,9 +660,10 @@
 <div class="app">
   <div class="topbar">
     <span class="logo">◈ CODERAIDER</span>
-    <div>
+    <div class="topbar-right">
       <span class="status-dot" id="status-dot"></span>
       <span class="status-text" id="status-text">OFFLINE</span>
+      <button class="gear-btn" id="settings-btn" onclick="openSettings()" aria-label="Settings" title="Settings">⚙</button>
     </div>
   </div>
 
@@ -773,6 +945,20 @@
         <input class="targets-url-input" id="targets-url-input" type="text" placeholder="BattleMetrics URL/ID or Steam URL/ID" autocomplete="off" />
         <button class="targets-confirm-btn" onclick="confirmAddTarget()">ADD</button>
       </div>
+
+      <!-- Offline heatmap (opt-in via Settings → Intel) -->
+      <div class="heatmap-section" id="heatmap-section" style="display:none;">
+        <div class="heatmap-head">
+          <span class="heatmap-label">Best Time to Raid</span>
+          <span class="heatmap-best no-data" id="heatmap-best">Gathering data…</span>
+        </div>
+        <div id="heatmap-body"></div>
+        <div class="heatmap-legend" id="heatmap-legend" style="display:none;">
+          <span>OFFLINE</span>
+          <span class="heatmap-legend-bar"></span>
+          <span>ONLINE</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -832,6 +1018,16 @@
     <button class="done-btn" onclick="leaveSession()">EXIT</button>
   </div>
 </div>
+
+<!-- Settings drawer -->
+<div class="settings-backdrop" id="settings-backdrop" onclick="closeSettings()"></div>
+<aside class="settings-drawer" id="settings-drawer" aria-hidden="true">
+  <div class="settings-head">
+    <div class="settings-title">SETTINGS</div>
+    <button class="settings-close" onclick="closeSettings()">CLOSE</button>
+  </div>
+  <div class="settings-body" id="settings-body"></div>
+</aside>
 
 <footer class="site-footer">
   <p>© 2026 CodeRaider<span class="footer-sep">|</span><a href="privacy.html">Privacy Policy</a><span class="footer-sep">|</span><a href="terms.html">Terms of Use</a></p>
@@ -1624,6 +1820,7 @@ function applyFoundCode(foundData) {
     if ($('raid-screen').classList.contains('code-found')) resetFoundUI();
     return;
   }
+  const wasShowing = $('raid-screen').classList.contains('code-found');
   $('found-display-code').textContent = foundData.code;
   const sub = $('found-display-sub');
   if (sub) {
@@ -1632,6 +1829,15 @@ function applyFoundCode(foundData) {
     sub.textContent = by + when;
   }
   $('raid-screen').classList.add('code-found');
+  // Browser notification (opt-in via Settings → Notifications)
+  if (!wasShowing && getPref('notif.code_found') && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('CodeRaider — code found', {
+        body: `${foundData.code}${foundData.by ? ' · by ' + foundData.by : ''}`,
+        icon: '/favicon.svg',
+      });
+    } catch {}
+  }
 }
 
 async function resetFoundCode() {
@@ -1695,6 +1901,287 @@ let globalIdxHistory = []; // [{time, idx}] for sliding-window CPH
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
+// ── Settings drawer + preferences ────────────────────────────────────────────
+// Config defined here (BEFORE init) so it's safe to reference during page boot.
+// Each pref has: key (localStorage), label, default, apply(on:bool) — applied on
+// load + whenever the user flips the toggle.
+function _hideShow(selector) {
+  return (on) => document.querySelectorAll(selector).forEach(el => {
+    el.classList.toggle('cr-hidden', !on);
+  });
+}
+function _hazardToggle(on) {
+  document.body.classList.toggle('no-hazard', !on);
+}
+function _heatmapToggle(on) {
+  const sec = $('heatmap-section');
+  if (sec) sec.style.display = on ? '' : 'none';
+  if (on) renderHeatmap();
+}
+function _noop() {}
+
+const SETTINGS = [
+  { section: 'Raid HUD', items: [
+    { key: 'hud.stats',   label: 'Stats bar',
+      sub: 'Mine / Left / Time / Codes per hour', def: true,
+      apply: _hideShow('.stat-bar') },
+    { key: 'hud.recent',  label: 'Recent fails',
+      sub: 'Last few codes you marked tested', def: true,
+      apply: _hideShow('.recent-section') },
+    { key: 'hud.raiders', label: 'Raider pills',
+      sub: 'Who else is in the room', def: true,
+      apply: _hideShow('#raider-row') },
+    { key: 'hud.ring',    label: 'Progress ring',
+      sub: 'Overall % cracked', def: true,
+      apply: _hideShow('.progress-ring-wrap') },
+  ]},
+  { section: 'Intel', items: [
+    { key: 'intel.targets', label: 'Targets panel',
+      sub: 'Tracked players & their live status', def: true,
+      apply: _hideShow('.targets-section') },
+    { key: 'intel.heatmap', label: 'Offline-window heatmap',
+      sub: 'Best time to raid based on target history (data builds up over ~24h+)',
+      def: false, apply: _heatmapToggle },
+  ]},
+  { section: 'Notifications', items: [
+    { key: 'notif.target_status', label: 'Sound on target online/offline',
+      sub: 'Plays a soft ping when a tracked player changes status',
+      def: false, apply: _noop },
+    { key: 'notif.code_found', label: 'Browser notification on code found',
+      sub: 'Requires browser permission', def: false,
+      apply: (on) => { if (on && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } },
+  ]},
+  { section: 'Display', items: [
+    { key: 'display.keys',   label: 'Keyboard hints',
+      sub: 'Show the SPACE / ENTER chips on the raid screen', def: true,
+      apply: _hideShow('.key-hint') },
+    { key: 'display.hazard', label: 'Hazard-stripe accents',
+      sub: 'Yellow/black warning strip at top of the app', def: true,
+      apply: _hazardToggle },
+  ]},
+];
+const PREF_PREFIX = 'cr_pref_';
+function getPref(key) {
+  const item = _findPref(key);
+  const stored = localStorage.getItem(PREF_PREFIX + key);
+  if (stored === null) return item ? item.def : false;
+  return stored === '1';
+}
+function setPref(key, val) {
+  localStorage.setItem(PREF_PREFIX + key, val ? '1' : '0');
+}
+function _findPref(key) {
+  for (const s of SETTINGS) for (const it of s.items) if (it.key === key) return it;
+  return null;
+}
+function applyAllPrefs() {
+  for (const sec of SETTINGS) for (const it of sec.items) {
+    try { it.apply(getPref(it.key)); } catch (e) { console.warn('pref apply failed', it.key, e); }
+  }
+}
+function renderSettingsBody() {
+  const body = $('settings-body');
+  if (!body) return;
+  const parts = [];
+  for (const sec of SETTINGS) {
+    parts.push(`<div class="settings-section">`);
+    parts.push(`<div class="settings-section-h">${sec.section}</div>`);
+    for (const it of sec.items) {
+      const on = getPref(it.key);
+      parts.push(
+        `<div class="settings-row">`
+        + `<div class="settings-row-text">`
+        + `<div class="settings-row-label">${it.label}</div>`
+        + (it.sub ? `<div class="settings-row-sub">${it.sub}</div>` : '')
+        + `</div>`
+        + `<div class="toggle${on ? ' on' : ''}" role="switch" aria-checked="${on}" data-key="${it.key}" tabindex="0"></div>`
+        + `</div>`
+      );
+    }
+    parts.push(`</div>`);
+  }
+  parts.push(`<button class="settings-reset" id="settings-reset">↺ Reset to defaults</button>`);
+  body.innerHTML = parts.join('');
+  body.querySelectorAll('.toggle').forEach(el => {
+    el.addEventListener('click', () => _toggleClicked(el));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); _toggleClicked(el); }
+    });
+  });
+  $('settings-reset').addEventListener('click', () => {
+    if (!confirm('Reset all settings to defaults?')) return;
+    for (const sec of SETTINGS) for (const it of sec.items) localStorage.removeItem(PREF_PREFIX + it.key);
+    applyAllPrefs();
+    renderSettingsBody();
+  });
+}
+function _toggleClicked(el) {
+  const key = el.dataset.key;
+  const newVal = !el.classList.contains('on');
+  el.classList.toggle('on', newVal);
+  el.setAttribute('aria-checked', String(newVal));
+  setPref(key, newVal);
+  const item = _findPref(key);
+  if (item) {
+    try { item.apply(newVal); } catch (e) { console.warn('apply failed', key, e); }
+  }
+}
+function openSettings() {
+  renderSettingsBody();
+  $('settings-drawer').classList.add('open');
+  $('settings-backdrop').classList.add('open');
+  $('settings-drawer').setAttribute('aria-hidden', 'false');
+}
+function closeSettings() {
+  $('settings-drawer').classList.remove('open');
+  $('settings-backdrop').classList.remove('open');
+  $('settings-drawer').setAttribute('aria-hidden', 'true');
+}
+window.openSettings = openSettings;
+window.closeSettings = closeSettings;
+
+// Close drawer on Escape
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && $('settings-drawer').classList.contains('open')) closeSettings();
+});
+
+// ── Target online-history collection (powers the heatmap) ────────────────────
+// On each target poll, append a sample to /playerHistory/{bmId}/recent/{ts}.
+// Samples are 0|1. Stamps are floor(Date.now() / 60000) (minute granularity)
+// so writes from concurrent clients collapse. Cap to last 14 days.
+const HISTORY_WINDOW_MS = 14 * 24 * 3600 * 1000;
+async function logTargetSnapshot(bmId, online) {
+  if (!firebaseReady || !bmId) return;
+  try {
+    const { ref, set, get, remove } = db.rtdb;
+    const minute = Math.floor(Date.now() / 60000);
+    await set(ref(db.database, `playerHistory/${bmId}/recent/${minute}`), online ? 1 : 0);
+    // Best-effort cleanup of stale entries (only attempted occasionally to save reads)
+    if (Math.random() < 0.05) {
+      const cutoff = Math.floor((Date.now() - HISTORY_WINDOW_MS) / 60000);
+      const snap = await get(ref(db.database, `playerHistory/${bmId}/recent`));
+      const data = snap.val() || {};
+      const olds = Object.keys(data).filter(k => Number(k) < cutoff);
+      await Promise.all(olds.map(k => remove(ref(db.database, `playerHistory/${bmId}/recent/${k}`))));
+    }
+  } catch (e) { /* swallow — history is best-effort */ }
+}
+
+// ── Offline-window heatmap ───────────────────────────────────────────────────
+// 7×24 grid (day-of-week rows × hour-of-day columns). For each tracked target,
+// pull samples from /playerHistory/{bmId}/recent, bucket into local-time DOW+H,
+// compute online% per bucket. Average across all targets to estimate combined
+// "team online" probability per slot. Lower = better raid window.
+async function renderHeatmap() {
+  if (!getPref('intel.heatmap')) return;
+  const sec = $('heatmap-section');
+  if (!sec || sec.style.display === 'none') return;
+  const body = $('heatmap-body');
+  const best = $('heatmap-best');
+  const legend = $('heatmap-legend');
+  if (!body) return;
+
+  const targetIds = Object.keys(targets || {});
+  if (targetIds.length === 0) {
+    body.innerHTML = `<div class="heatmap-empty">Add targets to start gathering<br>online-time history.</div>`;
+    legend.style.display = 'none';
+    best.textContent = 'No targets yet';
+    best.classList.add('no-data');
+    return;
+  }
+
+  if (!firebaseReady) {
+    body.innerHTML = `<div class="heatmap-empty">Sync disabled — heatmap unavailable.</div>`;
+    legend.style.display = 'none';
+    best.classList.add('no-data');
+    return;
+  }
+
+  body.innerHTML = `<div class="heatmap-empty">Reading history…</div>`;
+  best.textContent = '…';
+  best.classList.add('no-data');
+
+  const { ref, get } = db.rtdb;
+  // Sum of online-samples and total-samples per (dow, hour) bucket, across all targets.
+  const sum = new Array(7 * 24).fill(0);
+  const cnt = new Array(7 * 24).fill(0);
+  let anySamples = false;
+  for (const bmId of targetIds) {
+    try {
+      const snap = await get(ref(db.database, `playerHistory/${bmId}/recent`));
+      const data = snap.val() || {};
+      for (const minStr of Object.keys(data)) {
+        const t = Number(minStr) * 60000;
+        const d = new Date(t);
+        const dow = d.getDay(); // 0 = Sun
+        const hr = d.getHours();
+        const idx = dow * 24 + hr;
+        sum[idx] += data[minStr] ? 1 : 0;
+        cnt[idx] += 1;
+        anySamples = true;
+      }
+    } catch (e) { /* skip */ }
+  }
+
+  if (!anySamples) {
+    body.innerHTML = `<div class="heatmap-empty"><strong>Gathering data…</strong><br>Heatmap fills in as targets are polled (every ~2 minutes).<br>Useful resolution after ~24 hours of presence.</div>`;
+    legend.style.display = 'none';
+    best.textContent = 'Gathering…';
+    best.classList.add('no-data');
+    return;
+  }
+
+  // Render 7×24 grid
+  const dayLabels = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const parts = [];
+  parts.push(`<div class="heatmap-grid">`);
+  parts.push(`<div class="heatmap-corner"></div>`);
+  for (let h = 0; h < 24; h++) parts.push(`<div class="heatmap-hour-label">${h % 6 === 0 ? h : ''}</div>`);
+  for (let d = 0; d < 7; d++) {
+    parts.push(`<div class="heatmap-day-label">${dayLabels[d]}</div>`);
+    for (let h = 0; h < 24; h++) {
+      const idx = d * 24 + h;
+      if (cnt[idx] === 0) {
+        parts.push(`<div class="heatmap-cell nd" title="${dayLabels[d]} ${h}:00 — no data"></div>`);
+        continue;
+      }
+      const p = sum[idx] / cnt[idx];
+      const cls = p < .15 ? 'l0' : p < .30 ? 'l1' : p < .50 ? 'l2' : p < .70 ? 'l3' : 'l4';
+      parts.push(`<div class="heatmap-cell ${cls}" title="${dayLabels[d]} ${h}:00 — ${Math.round(p*100)}% online (n=${cnt[idx]})"></div>`);
+    }
+  }
+  parts.push(`</div>`);
+  body.innerHTML = parts.join('');
+  legend.style.display = '';
+
+  // Find the best window in the next 24h
+  const now = new Date();
+  const startDow = now.getDay();
+  const startHr = now.getHours();
+  let bestIdx = -1;
+  let bestVal = Infinity;
+  let bestHasData = false;
+  for (let i = 0; i < 24; i++) {
+    const dow = (startDow + Math.floor((startHr + i) / 24)) % 7;
+    const hr = (startHr + i) % 24;
+    const idx = dow * 24 + hr;
+    if (cnt[idx] === 0) continue;
+    const p = sum[idx] / cnt[idx];
+    if (p < bestVal) { bestVal = p; bestIdx = i; bestHasData = true; }
+  }
+  if (bestHasData) {
+    const bestHr = (startHr + bestIdx) % 24;
+    const bestDay = dayLabels[(startDow + Math.floor((startHr + bestIdx) / 24)) % 7];
+    const pct = Math.round(bestVal * 100);
+    best.textContent = `${bestDay} ${bestHr}:00 — ${pct}% online`;
+    best.classList.remove('no-data');
+  } else {
+    best.textContent = 'Need more data';
+    best.classList.add('no-data');
+  }
+}
+window.renderHeatmap = renderHeatmap;
+
 // ── Setup: restore last session from localStorage ────────────────────────────
 // (module scripts are deferred — DOM is already ready here, no need for DOMContentLoaded)
 {
@@ -1727,6 +2214,9 @@ const $ = (id) => document.getElementById(id);
     window.__pendingJoinCode = raw;
     window.history.replaceState({}, '', '/');
   }
+
+  // Apply saved user preferences early so toggled-off elements don't flash on
+  applyAllPrefs();
 
   await updateAuthUI();
 
@@ -2686,6 +3176,26 @@ function renderTargetSummaryHtml(s) {
   return html;
 }
 
+// Web Audio beep — short, two notes (online: rising; offline: falling)
+let _audioCtx = null;
+function playStatusSound(online) {
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(online ? 660 : 440, now);
+    osc.frequency.exponentialRampToValueAtTime(online ? 880 : 330, now + 0.12);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.2);
+  } catch {}
+}
+
 async function refreshTargetStatuses() {
   const keys = Object.keys(targets);
   if (!keys.length) return;
@@ -2695,16 +3205,24 @@ async function refreshTargetStatuses() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.error) return;
+      const prevOnline = targets[bmId]?.online;
       targets[bmId] = { ...targets[bmId], name: data.name, online: data.online, loading: false, serverId: data.serverId || null, serverName: data.serverName || null };
+      if (prevOnline !== undefined && prevOnline !== data.online && getPref('notif.target_status')) {
+        playStatusSound(!!data.online);
+      }
       if (firebaseReady && roomCode) {
         const { ref, update } = db.rtdb;
         await update(ref(db.database, `sessions/${sanitize(roomCode)}/targets/${bmId}`), {
           online: data.online, serverId: data.serverId || null, serverName: data.serverName || null, lastChecked: Date.now(),
         });
       }
+      // Append online/offline sample to the shared player history (powers heatmap)
+      logTargetSnapshot(bmId, !!data.online);
     } catch {}
   }));
   renderTargets();
+  // If the heatmap is open, refresh it after each poll
+  if (getPref('intel.heatmap')) renderHeatmap();
 }
 
 // ── Steam link per target ────────────────────────────────────────────────────
